@@ -1,1 +1,51 @@
-<meta http-equiv="refresh" content="0;URL='./external/pdfjs-2.1.266-dist/web/viewer.html'">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PDF Flipbook Viewer</title>
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.5;
+        --accent: #2563eb;
+      }
+      body {
+        max-width: 36rem;
+        margin: 0 auto;
+        padding: 3rem 1.5rem;
+        text-align: center;
+      }
+      h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+      p { color: #555; margin-bottom: 2rem; }
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      a {
+        display: block;
+        padding: 0.9rem 1.25rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      a.primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      a.secondary {
+        border: 1px solid #ccc;
+        color: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PDF Flipbook Viewer</h1>
+    <p>Upload a PDF and share it as an interactive page-flip book.</p>
+    <div class="actions">
+      <a class="primary" href="/create/">Create flipbook</a>
+      <a class="secondary" href="./external/pdfjs-2.1.266-dist/web/viewer.html">Open sample viewer</a>
+    </div>
+  </body>
+</html>

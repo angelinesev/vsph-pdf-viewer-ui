@@ -8,6 +8,13 @@
 	background: #FFF;
 }
 
+.bookFlipMode #viewerContainer {
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
 /* PDF.js additional */
 
 .secondaryToolbarButton.bookFlip::before {

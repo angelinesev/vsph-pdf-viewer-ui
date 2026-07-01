@@ -1,0 +1,25 @@
+{
+  "name": "pdf-viewer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PDF flip-book viewer with Supabase-backed client links",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "setup:supabase": "node scripts/setup-supabase.js",
+    "migrate:view-type": "node scripts/migrate-view-type.js",
+    "validate:env": "node scripts/validate-env.js",
+    "test:e2e": "node scripts/e2e-test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.5.2",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.3"
+  }
+}

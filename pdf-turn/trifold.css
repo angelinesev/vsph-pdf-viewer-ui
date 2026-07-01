@@ -1,0 +1,94 @@
+/* Trifold flyer layout */
+
+.trifold-banner {
+	position: absolute;
+	top: 48px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 100;
+	max-width: 90%;
+	padding: 0.5rem 1rem;
+	background: #fef3c7;
+	color: #92400e;
+	border: 1px solid #fcd34d;
+	border-radius: 8px;
+	font-size: 0.85rem;
+	text-align: center;
+}
+
+.trifoldMode #viewerContainer {
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.trifoldViewer.pdfViewer {
+	display: flex !important;
+	flex-direction: row;
+	justify-content: center;
+	align-items: flex-start;
+	perspective: 1800px;
+	opacity: 1;
+	margin: 0 auto;
+}
+
+.trifoldViewer.pdfViewer .page {
+	flex: 1 1 0;
+	min-width: 0;
+	margin: 0;
+	position: relative;
+	overflow: visible;
+	background-color: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+	box-sizing: border-box;
+}
+
+.trifoldViewer .page.trifold-hidden {
+	display: none !important;
+}
+
+.trifold-panel-left {
+	transform-origin: right center;
+	border-right: 1px dashed rgba(0, 0, 0, 0.15);
+}
+
+.trifold-panel-center {
+	border-left: 1px dashed rgba(0, 0, 0, 0.1);
+	border-right: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.trifold-panel-right {
+	transform-origin: left center;
+	border-left: 1px dashed rgba(0, 0, 0, 0.15);
+}
+
+.trifoldViewer.trifold-folding .trifold-panel-left {
+	animation: trifoldFoldLeft 0.55s ease-in-out;
+}
+
+.trifoldViewer.trifold-folding .trifold-panel-center {
+	animation: trifoldFoldCenter 0.55s ease-in-out;
+}
+
+.trifoldViewer.trifold-folding .trifold-panel-right {
+	animation: trifoldFoldRight 0.55s ease-in-out;
+}
+
+@keyframes trifoldFoldLeft {
+	0% { transform: rotateY(0deg); }
+	40% { transform: rotateY(-28deg); }
+	100% { transform: rotateY(0deg); }
+}
+
+@keyframes trifoldFoldCenter {
+	0% { transform: translateX(0); }
+	40% { transform: translateX(6px); }
+	100% { transform: translateX(0); }
+}
+
+@keyframes trifoldFoldRight {
+	0% { transform: rotateY(0deg); }
+	40% { transform: rotateY(28deg); }
+	100% { transform: rotateY(0deg); }
+}

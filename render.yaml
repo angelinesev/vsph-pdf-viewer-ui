@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: pdf-viewer
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: BASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: pdfs
+      - key: DEFAULT_LINK_EXPIRY_HOURS
+        value: "168"

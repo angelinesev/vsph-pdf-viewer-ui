@@ -1,0 +1,38 @@
+[build]
+  command = "npm install"
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["server/lib/**"]
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/api-health"
+  status = 200
+
+[[redirects]]
+  from = "/api/documents/prepare"
+  to = "/.netlify/functions/api-documents-prepare"
+  status = 200
+
+[[redirects]]
+  from = "/api/links"
+  to = "/.netlify/functions/api-links"
+  status = 200
+
+[[redirects]]
+  from = "/view/*"
+  to = "/.netlify/functions/view/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/create/"
+  status = 301
+
+[[redirects]]
+  from = "/admin/*"
+  to = "/create/"
+  status = 301
