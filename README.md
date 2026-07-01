@@ -62,15 +62,21 @@ Brochure links use page-flip mode. Flyer links use trifold layout (pages 1–3, 
 
 The site is configured for Netlify via [`netlify.toml`](netlify.toml). Static assets are served from the CDN; API routes run as Netlify Functions. PDF uploads go **directly to Supabase Storage** (signed URLs), so large files work despite Netlify’s function size limits.
 
-1. Connect the repo in Netlify and deploy (no custom build command needed).
-2. Set environment variables under **Site settings → Environment variables**:
+1. **Push this repo to GitHub** (Netlify deploys from git). The commit must include [`netlify.toml`](netlify.toml), [`netlify/functions/`](netlify/functions/), [`create/`](create/), and [`server/lib/`](server/lib/).
+2. In **Site configuration → Build & deploy**, confirm:
+   - **Base directory:** *(empty)*
+   - **Build command:** `npm install` *(or leave blank — [`netlify.toml`](netlify.toml) sets this)*
+   - **Publish directory:** `.` *(not `dist` or `build`)*
+3. Set environment variables under **Site settings → Environment variables**:
    - `BASE_URL` — your Netlify URL, e.g. `https://your-site.netlify.app`
    - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` (`pdfs`)
    - `DEFAULT_LINK_EXPIRY_HOURS` (`168`)
    - For `SUPABASE_SERVICE_ROLE_KEY`, paste **only the key value** in the Value field (starts with `eyJ...` or `sb_secret_...`). Do **not** include `SUPABASE_SERVICE_ROLE_KEY=` in the value.
 3. Run [`supabase/schema.sql`](supabase/schema.sql) and [`supabase/migrations/001_add_view_type.sql`](supabase/migrations/001_add_view_type.sql) in the Supabase SQL Editor if not already applied.
-4. Verify `GET /api/health` returns `{ "ok": true, "supabaseOk": true }`.
-5. Run `npm run validate:env` locally to check your key before deploying.
+4. After deploy, confirm the deploy log lists **4 functions** (`api-health`, `api-documents-prepare`, `api-links`, `view`).
+5. Verify `GET /api/health` returns `{ "ok": true, "supabaseOk": true }`.
+6. Open a share link `/view/<token>` — should redirect to the flipbook viewer (not Netlify “Page not found”).
+7. Run `npm run validate:env` locally to check your key before deploying.
 
 ### Node.js web service (Render, Railway, Fly.io)
 
