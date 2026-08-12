@@ -5,7 +5,7 @@ const {
   getStorageBucket,
   getSupabaseConfigError,
 } = require('./supabase');
-const { generateToken, parseExpiryHours, expiryDate } = require('./tokens');
+const { generateToken, parseExpiryHours, expiryDate, isLinkExpired } = require('./tokens');
 const { probeViewTypeColumn } = require('./view-type-column');
 const {
   readSupabaseEnv,
@@ -18,7 +18,6 @@ const {
   VIEWER_PATH,
   SIGNED_URL_TTL_SEC,
   getBaseUrl,
-  getDefaultLinkExpiryHours,
   parseViewType,
   safeFilename,
 } = require('./constants');
@@ -33,13 +32,40 @@ function isAuthKeyError(message) {
   );
 }
 
+function collectErrorText(error) {
+  const parts = [];
+  let current = error;
+  for (let i = 0; i < 4 && current; i += 1) {
+    if (current.code) parts.push(String(current.code));
+    if (current.message) parts.push(String(current.message));
+    current = current.cause || current.originalError || current.errors?.[0];
+  }
+  return parts.join(' ');
+}
+
 function formatSupabaseError(error) {
   const message = error?.message || String(error || 'Unknown error');
+  const detail = collectErrorText(error);
+  const { url } = readSupabaseEnv();
+  const host = url ? url.replace(/^https?:\/\//, '').split('/')[0] : 'your SUPABASE_URL host';
 
-  if (isAuthKeyError(message)) {
+  if (isAuthKeyError(message) || isAuthKeyError(detail)) {
     return {
       status: 503,
       body: { error: getInvalidApiKeyHint() },
+    };
+  }
+
+  // Supabase-js uses fetch. DNS failure (ENOTFOUND) usually means the project was paused or deleted.
+  if (/fetch failed|enotfound|eai_again|econnrefused|etimedout|cert|ssl/i.test(detail)) {
+    const dns = /enotfound/i.test(detail);
+    return {
+      status: 503,
+      body: {
+        error: dns
+          ? `Cannot reach Supabase: DNS lookup failed for ${host}. Restore or recreate the project in the Supabase dashboard, then set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.`
+          : `Cannot reach Supabase at ${host} (network/DNS/TLS). Check SUPABASE_URL and that the project is not paused.`,
+      },
     };
   }
 
@@ -117,10 +143,23 @@ async function getHealthAsync() {
   }
 
   const supabase = getSupabase();
-  const { error } = await supabase.from('pdf_documents').select('id').limit(1);
+  try {
+    const { error } = await supabase.from('pdf_documents').select('id').limit(1);
 
-  if (error) {
-    const formatted = formatSupabaseError(error);
+    if (error) {
+      const formatted = formatSupabaseError(error);
+      return {
+        status: 200,
+        body: {
+          ...base,
+          supabase: true,
+          supabaseOk: false,
+          hint: formatted.body.error,
+        },
+      };
+    }
+  } catch (err) {
+    const formatted = formatSupabaseError(err);
     return {
       status: 200,
       body: {
@@ -209,47 +248,52 @@ async function prepareDocumentUpload({ filename, view_type: viewTypeInput, size_
   const safeName = safeFilename(filename);
   const storagePath = `${documentId}/${safeName}`;
   const viewType = parseViewType(viewTypeInput);
-  const hasViewType = await probeViewTypeColumn(supabase);
 
-  const insertPayload = {
-    id: documentId,
-    storage_path: storagePath,
-    filename: safeName,
-  };
-  if (hasViewType) insertPayload.view_type = viewType;
+  try {
+    const hasViewType = await probeViewTypeColumn(supabase);
 
-  const { data: row, error: insertError } = await supabase
-    .from('pdf_documents')
-    .insert(insertPayload)
-    .select('id, filename, created_at')
-    .single();
+    const insertPayload = {
+      id: documentId,
+      storage_path: storagePath,
+      filename: safeName,
+    };
+    if (hasViewType) insertPayload.view_type = viewType;
 
-  if (insertError) {
-    return formatSupabaseError(insertError);
-  }
+    const { data: row, error: insertError } = await supabase
+      .from('pdf_documents')
+      .insert(insertPayload)
+      .select('id, filename, created_at')
+      .single();
 
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from(bucket)
-    .createSignedUploadUrl(storagePath);
+    if (insertError) {
+      return formatSupabaseError(insertError);
+    }
 
-  if (uploadError) {
-    await supabase.from('pdf_documents').delete().eq('id', documentId);
-    return formatSupabaseError(uploadError);
-  }
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucket)
+      .createSignedUploadUrl(storagePath);
 
-  row.view_type = viewType;
+    if (uploadError) {
+      await supabase.from('pdf_documents').delete().eq('id', documentId);
+      return formatSupabaseError(uploadError);
+    }
 
-  return {
-    status: 201,
-    body: {
-      document: row,
-      upload: {
-        signedUrl: uploadData.signedUrl,
-        path: uploadData.path,
-        token: uploadData.token,
+    row.view_type = viewType;
+
+    return {
+      status: 201,
+      body: {
+        document: row,
+        upload: {
+          signedUrl: uploadData.signedUrl,
+          path: uploadData.path,
+          token: uploadData.token,
+        },
       },
-    },
-  };
+    };
+  } catch (err) {
+    return formatSupabaseError(err);
+  }
 }
 
 async function createAccessLink({
@@ -270,8 +314,9 @@ async function createAccessLink({
     return notConfigured();
   }
 
-  const hours = parseExpiryHours(expiresInHours, getDefaultLinkExpiryHours());
+  const hours = parseExpiryHours(expiresInHours);
 
+  try {
   const { data: doc, error: docError } = await supabase
     .from('pdf_documents')
     .select('id')
@@ -313,42 +358,55 @@ async function createAccessLink({
       expires_at: expiresAt.toISOString(),
     },
   };
+  } catch (err) {
+    return formatSupabaseError(err);
+  }
 }
 
-async function getPdfRedirectForToken(token) {
+async function resolvePdfAccess(token) {
   if (!isSupabaseConfigured()) {
-    return notConfigured();
+    return { error: notConfigured() };
   }
 
   const supabase = getSupabase();
   if (!supabase) {
-    return notConfigured();
+    return { error: notConfigured() };
   }
 
   const { link, linkError } = await lookupAccessLink(supabase, token);
 
   if (linkError) {
-    return formatSupabaseError(linkError);
+    return { error: formatSupabaseError(linkError) };
   }
 
   if (!link) {
-    return { status: 404, body: { error: 'Link not found' } };
+    return { error: { status: 404, body: { error: 'Link not found' } } };
   }
 
-  if (new Date(link.expires_at) < new Date()) {
-    return { status: 410, body: { error: 'Link expired' } };
+  if (isLinkExpired(link.expires_at)) {
+    return { error: { status: 410, body: { error: 'Link expired' } } };
   }
 
   const { doc, docError } = await getDocumentStoragePath(supabase, link.document_id);
 
   if (docError) {
-    return formatSupabaseError(docError);
+    return { error: formatSupabaseError(docError) };
   }
 
   if (!doc) {
-    return { status: 404, body: { error: 'Document not found' } };
+    return { error: { status: 404, body: { error: 'Document not found' } } };
   }
 
+  return { supabase, doc, link };
+}
+
+async function getPdfSignedUrlForToken(token) {
+  const resolved = await resolvePdfAccess(token);
+  if (resolved.error) {
+    return resolved.error;
+  }
+
+  const { supabase, doc } = resolved;
   const { signedUrl, error } = await createSignedPdfUrl(supabase, doc.storage_path);
 
   if (error) {
@@ -356,10 +414,44 @@ async function getPdfRedirectForToken(token) {
   }
 
   return {
-    status: 302,
-    headers: { Location: signedUrl },
-    body: '',
+    status: 200,
+    body: { url: signedUrl },
   };
+}
+
+async function getPdfResponseForToken(token) {
+  const resolved = await resolvePdfAccess(token);
+  if (resolved.error) {
+    return resolved.error;
+  }
+
+  const { supabase, doc } = resolved;
+  const bucket = getStorageBucket();
+  const { data: fileData, error: downloadError } = await supabase.storage
+    .from(bucket)
+    .download(doc.storage_path);
+
+  if (downloadError) {
+    return formatSupabaseError(downloadError);
+  }
+
+  const buffer = Buffer.from(await fileData.arrayBuffer());
+  const safeFilename = doc.filename.replace(/"/g, '');
+
+  return {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${safeFilename}"`,
+      'Cache-Control': 'private, no-store',
+    },
+    body: buffer,
+    binary: true,
+  };
+}
+
+async function getPdfRedirectForToken(token) {
+  return getPdfResponseForToken(token);
 }
 
 async function getViewRedirect(token, queryView) {
@@ -383,7 +475,7 @@ async function getViewRedirect(token, queryView) {
     return { status: 404, body: 'Link not found', contentType: 'text/plain' };
   }
 
-  if (new Date(link.expires_at) < new Date()) {
+  if (isLinkExpired(link.expires_at)) {
     return { status: 410, body: 'Link expired', contentType: 'text/plain' };
   }
 
@@ -398,15 +490,11 @@ async function getViewRedirect(token, queryView) {
     return { status: 404, body: 'Document not found', contentType: 'text/plain' };
   }
 
-  const { signedUrl, error } = await createSignedPdfUrl(supabase, doc.storage_path);
-
-  if (error) {
-    const formatted = formatSupabaseError(error);
-    return { status: formatted.status, body: formatted.body.error, contentType: 'text/plain' };
-  }
-
+  // Keep the redirect URL short. Embedding a full Supabase signed URL in
+  // ?file= can exceed CDN/proxy limits and produce a Netlify 404 page.
+  // resolve-pdf-file.js turns /api/pdf/:token into a signed URL in the browser.
   const viewType = parseViewType(queryView || link.view_type);
-  const fileParam = encodeURIComponent(signedUrl);
+  const fileParam = encodeURIComponent(`/api/pdf/${token}`);
   const location = `${VIEWER_PATH}?file=${fileParam}&client=1&view=${viewType}`;
 
   return {
@@ -422,6 +510,8 @@ module.exports = {
   formatSupabaseError,
   prepareDocumentUpload,
   createAccessLink,
+  getPdfSignedUrlForToken,
+  getPdfResponseForToken,
   getPdfRedirectForToken,
   getViewRedirect,
 };

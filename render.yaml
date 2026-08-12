@@ -16,5 +16,3 @@ services:
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
         value: pdfs
-      - key: DEFAULT_LINK_EXPIRY_HOURS
-        value: "168"

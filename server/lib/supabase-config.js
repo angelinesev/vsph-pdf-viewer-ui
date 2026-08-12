@@ -5,7 +5,12 @@ const ENV_PREFIXES = [
 
 function normalizeSupabaseUrl(url) {
   if (!url) return '';
-  return String(url).trim().replace(/\/$/, '');
+  let normalized = String(url).trim().replace(/\/$/, '');
+  // Allow envs like "phxxxx.supabase.co" (missing scheme).
+  if (normalized && !/^https?:\/\//i.test(normalized)) {
+    normalized = `https://${normalized}`;
+  }
+  return normalized;
 }
 
 function normalizeSupabaseKey(raw) {
@@ -67,7 +72,7 @@ function getSupabaseKeyHint(keyType) {
     case 'anon':
       return 'Use the secret/service_role key from Supabase (Project Settings ? API), not the publishable or anon key.';
     case 'unknown':
-      return 'SUPABASE_SERVICE_ROLE_KEY does not look like a valid secret key. Paste only the key value — not SUPABASE_SERVICE_ROLE_KEY=...';
+      return 'SUPABASE_SERVICE_ROLE_KEY does not look like a valid secret key. Paste only the key value ï¿½ not SUPABASE_SERVICE_ROLE_KEY=...';
     default:
       return null;
   }

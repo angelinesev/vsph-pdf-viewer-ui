@@ -16,6 +16,18 @@ function toNetlify(result) {
     headers['Content-Type'] = contentType;
   }
 
+  if (result.binary) {
+    const body = Buffer.isBuffer(result.body)
+      ? result.body.toString('base64')
+      : Buffer.from(result.body).toString('base64');
+    return {
+      statusCode: result.status,
+      headers,
+      body,
+      isBase64Encoded: true,
+    };
+  }
+
   let body = result.body;
   if (body !== '' && body != null && contentType === 'application/json' && typeof body !== 'string') {
     body = JSON.stringify(body);
@@ -28,6 +40,10 @@ function toNetlify(result) {
   };
 }
 
+function binaryHandler(fn) {
+  return jsonHandler(fn);
+}
+
 function jsonHandler(fn) {
   return async (event) => {
     try {
@@ -37,7 +53,10 @@ function jsonHandler(fn) {
       const result = await fn(event);
       return toNetlify(result);
     } catch (err) {
-      return toNetlify({ status: 500, body: { error: err.message || 'Internal server error' } });
+      const formatted = handlers.formatSupabaseError
+        ? handlers.formatSupabaseError(err)
+        : { status: 500, body: { error: err.message || 'Internal server error' } };
+      return toNetlify(formatted);
     }
   };
 }
@@ -62,6 +81,7 @@ function pathToken(event) {
 module.exports = {
   handlers,
   jsonHandler,
+  binaryHandler,
   parseJsonBody,
   pathToken,
   toNetlify,

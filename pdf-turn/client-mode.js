@@ -11,16 +11,11 @@
       '#download',
       '#secondaryDownload',
       '#viewBookmark',
+      '#scrollVertical',
+      '#scrollHorizontal',
+      '#scrollWrapped',
+      '#bookFlip',
     ];
-
-    if (params.get('view') !== 'flyer') {
-      selectors.push(
-        '#scrollVertical',
-        '#scrollHorizontal',
-        '#scrollWrapped',
-        '#bookFlip',
-      );
-    }
 
     selectors.forEach(function (selector) {
       var el = document.querySelector(selector);

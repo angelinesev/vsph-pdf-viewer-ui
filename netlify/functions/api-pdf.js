@@ -1,0 +1,14 @@
+const { handlers, binaryHandler, pathToken } = require('./_shared');
+
+exports.handler = binaryHandler(async (event) => {
+  if (event.httpMethod !== 'GET') {
+    return { status: 405, body: { error: 'Method not allowed' } };
+  }
+
+  const token = pathToken(event);
+  if (!token) {
+    return { status: 400, body: { error: 'Missing token' } };
+  }
+
+  return handlers.getPdfResponseForToken(token);
+});

@@ -1757,7 +1757,9 @@ var validateFileURL;
           origin = _ref8.origin,
           protocol = _ref8.protocol;
 
-      if (origin !== viewerOrigin && protocol !== 'blob:') {
+      var isSupabaseOrigin = origin && /\.supabase\.co$/i.test(origin);
+
+      if (origin !== viewerOrigin && protocol !== 'blob:' && !isSupabaseOrigin) {
         throw new Error('file origin does not match viewer\'s');
       }
     } catch (ex) {

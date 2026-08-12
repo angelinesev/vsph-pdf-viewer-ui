@@ -10,10 +10,31 @@ var fitScreen = {
 		if (!el) {
 			return { width: 0, height: 0 };
 		}
-		return {
-			width: el.clientWidth,
-			height: el.clientHeight,
+		var width = el.clientWidth;
+		var height = el.clientHeight;
+		var isFullscreen = document.fullscreenElement === el
+			|| document.webkitFullscreenElement === el
+			|| document.mozFullScreenElement === el
+			|| document.msFullscreenElement === el;
+		if (isFullscreen && (width < 50 || height < 50)) {
+			width = window.innerWidth;
+			height = window.innerHeight;
+		}
+		return { width: width, height: height };
+	},
+
+	bindPresentationReflow: function (callback) {
+		var debounced = this.debounce(callback, 150);
+		var schedule = function () {
+			debounced();
+			requestAnimationFrame(debounced);
+			setTimeout(debounced, 300);
 		};
+		$(document).on('presentationmodechanged', schedule);
+		window.addEventListener('fullscreenchange', schedule);
+		window.addEventListener('webkitfullscreenchange', schedule);
+		window.addEventListener('mozfullscreenchange', schedule);
+		window.addEventListener('MSFullscreenChange', schedule);
 	},
 
 	scaleToFit: function (pageW, pageH, columns, padding) {

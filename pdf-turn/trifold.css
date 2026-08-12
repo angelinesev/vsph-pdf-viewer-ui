@@ -1,4 +1,4 @@
-/* Trifold flyer layout */
+/* Simplebooklet-style trifold: front 1-2-3, back 4-5-0 */
 
 .trifold-banner {
 	position: absolute;
@@ -16,6 +16,10 @@
 	text-align: center;
 }
 
+body:has(.pdfPresentationMode) .trifold-banner {
+	display: none;
+}
+
 .trifoldMode #viewerContainer {
 	overflow: hidden;
 	display: flex;
@@ -23,72 +27,231 @@
 	justify-content: center;
 }
 
-.trifoldViewer.pdfViewer {
-	display: flex !important;
-	flex-direction: row;
+.trifoldMode #viewerContainer.pdfPresentationMode:fullscreen,
+.trifoldMode #viewerContainer.pdfPresentationMode:-webkit-full-screen,
+.trifoldMode #viewerContainer.pdfPresentationMode:-moz-full-screen,
+.trifoldMode #viewerContainer.pdfPresentationMode:-ms-fullscreen {
+	display: flex;
+	align-items: center;
 	justify-content: center;
-	align-items: flex-start;
-	perspective: 1800px;
-	opacity: 1;
-	margin: 0 auto;
 }
 
-.trifoldViewer.pdfViewer .page {
-	flex: 1 1 0;
-	min-width: 0;
-	margin: 0;
+.trifoldMode #viewerContainer.pdfPresentationMode .page,
+.trifoldMode #viewerContainer.pdfPresentationMode:fullscreen .pdfViewer .page,
+.trifoldMode #viewerContainer.pdfPresentationMode:-webkit-full-screen .pdfViewer .page,
+.trifoldMode #viewerContainer.pdfPresentationMode:-moz-full-screen .pdfViewer .page,
+.trifoldMode #viewerContainer.pdfPresentationMode:-ms-fullscreen .pdfViewer .page,
+.pdfPresentationMode .trifoldViewer .page {
+	margin: 0 !important;
+	margin-bottom: 0 !important;
+	border: 0;
+	display: block;
+}
+
+.trifoldViewer.pdfViewer {
+	display: block !important;
 	position: relative;
 	overflow: visible;
-	background-color: #fff;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-	box-sizing: border-box;
+	opacity: 1;
+	margin: 0 auto;
+	background: transparent;
 }
 
 .trifoldViewer .page.trifold-hidden {
-	display: none !important;
+	position: absolute !important;
+	left: -9999px !important;
+	top: 0 !important;
+	display: block !important;
+	pointer-events: none;
+	opacity: 0;
 }
 
-.trifold-panel-left {
+.trifold-scene {
+	--panel-w: 180px;
+	--panel-h: 260px;
+	width: calc(var(--panel-w) * 3);
+	height: var(--panel-h);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	perspective: 1800px;
+	perspective-origin: 50% 50%;
+	overflow: visible;
+	touch-action: pan-y;
+}
+
+.trifold-brochure {
+	position: relative;
+	width: var(--panel-w);
+	height: var(--panel-h);
+	transform-style: preserve-3d;
+	overflow: visible;
+	transition: transform 1s cubic-bezier(.2, .7, .2, 1);
+}
+
+.trifold-brochure.animating {
+	pointer-events: none;
+}
+
+.trifold-brochure.no-motion,
+.trifold-brochure.no-motion .fold-container,
+.trifold-brochure.no-motion .slot {
+	transition: none !important;
+}
+
+.fold-container {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: var(--panel-w);
+	height: var(--panel-h);
+	transform-style: preserve-3d;
+	overflow: visible;
+}
+
+.fold-container.pages-front {
+	z-index: 2;
+	transform: rotateY(0deg);
+}
+
+.fold-container.pages-back {
+	z-index: 1;
+	transform: rotateY(180deg);
+}
+
+.fold-container.flip.old-page,
+.fold-container.flip.new-page {
+	transition: transform 1s cubic-bezier(.2, .7, .2, 1);
+}
+
+.fold-container.pages-back.finish {
+	z-index: 3;
+}
+
+.slot {
+	position: absolute;
+	top: 0;
+	width: var(--panel-w);
+	height: var(--panel-h);
+	transform-style: preserve-3d;
+	overflow: hidden;
+	background: #f4f1ea;
+	box-sizing: border-box;
+	transition: transform 1s cubic-bezier(.2, .7, .2, 1);
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+
+.slot.panel-center {
+	left: 0;
+	z-index: 2;
+	box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.slot.panel-left {
+	right: 100%;
+	left: auto;
 	transform-origin: right center;
-	border-right: 1px dashed rgba(0, 0, 0, 0.15);
+	z-index: 1;
+	border-right: 1px solid rgba(0, 0, 0, 0.12);
+	box-shadow: inset -10px 0 14px rgba(0, 0, 0, 0.08);
 }
 
-.trifold-panel-center {
-	border-left: 1px dashed rgba(0, 0, 0, 0.1);
-	border-right: 1px dashed rgba(0, 0, 0, 0.1);
-}
-
-.trifold-panel-right {
+.slot.panel-right {
+	left: 100%;
 	transform-origin: left center;
-	border-left: 1px dashed rgba(0, 0, 0, 0.15);
+	z-index: 1;
+	border-left: 1px solid rgba(0, 0, 0, 0.12);
+	box-shadow: inset 10px 0 14px rgba(0, 0, 0, 0.08);
 }
 
-.trifoldViewer.trifold-folding .trifold-panel-left {
-	animation: trifoldFoldLeft 0.55s ease-in-out;
+.slot-face {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	background: #f4f1ea;
 }
 
-.trifoldViewer.trifold-folding .trifold-panel-center {
-	animation: trifoldFoldCenter 0.55s ease-in-out;
+.slot-face .page {
+	width: 100% !important;
+	height: 100% !important;
+	margin: 0 !important;
+	border: 0 !important;
+	background: #fff;
+	box-shadow: none !important;
+	position: relative !important;
+	overflow: hidden;
 }
 
-.trifoldViewer.trifold-folding .trifold-panel-right {
-	animation: trifoldFoldRight 0.55s ease-in-out;
+.slot-face .page .canvasWrapper,
+.slot-face .page canvas,
+.slot-face canvas.trifold-slice {
+	width: 100% !important;
+	height: 100% !important;
+	display: block;
 }
 
-@keyframes trifoldFoldLeft {
-	0% { transform: rotateY(0deg); }
-	40% { transform: rotateY(-28deg); }
-	100% { transform: rotateY(0deg); }
+/* State 0: closed cover (slot 2). Wings folded behind. */
+.trifold-brochure[data-state="0"] .pages-front .panel-left {
+	transform: rotateY(-180deg);
+	z-index: 0;
 }
 
-@keyframes trifoldFoldCenter {
-	0% { transform: translateX(0); }
-	40% { transform: translateX(6px); }
-	100% { transform: translateX(0); }
+.trifold-brochure[data-state="0"] .pages-front .panel-right {
+	transform: rotateY(180deg);
+	z-index: 0;
 }
 
-@keyframes trifoldFoldRight {
-	0% { transform: rotateY(0deg); }
-	40% { transform: rotateY(28deg); }
-	100% { transform: rotateY(0deg); }
+.trifold-brochure[data-state="0"] {
+	transform: rotateY(0deg);
+}
+
+/* State 1: left flap open */
+.trifold-brochure[data-state="1"] .pages-front .panel-left {
+	transform: rotateY(0deg);
+	z-index: 3;
+}
+
+.trifold-brochure[data-state="1"] .pages-front .panel-right {
+	transform: rotateY(180deg);
+	z-index: 0;
+}
+
+.trifold-brochure[data-state="1"] {
+	transform: rotateY(0deg);
+}
+
+/* State 2: full front 1-2-3 */
+.trifold-brochure[data-state="2"] .pages-front .panel-left,
+.trifold-brochure[data-state="2"] .pages-front .panel-right {
+	transform: rotateY(0deg);
+	z-index: 3;
+}
+
+.trifold-brochure[data-state="2"] {
+	transform: rotateY(0deg);
+}
+
+/* State 3: flip sheet to back 4-5-0 */
+.trifold-brochure[data-state="3"] {
+	transform: rotateY(180deg);
+}
+
+.trifold-brochure[data-state="3"] .pages-front .panel-left,
+.trifold-brochure[data-state="3"] .pages-front .panel-right {
+	transform: rotateY(0deg);
+}
+
+.trifold-brochure[data-state="3"] .pages-back .panel-left,
+.trifold-brochure[data-state="3"] .pages-back .panel-right {
+	transform: rotateY(0deg);
+	z-index: 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.trifold-brochure,
+	.trifold-brochure .slot,
+	.fold-container {
+		transition: none !important;
+	}
 }

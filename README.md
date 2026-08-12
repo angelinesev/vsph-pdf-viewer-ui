@@ -46,15 +46,23 @@ This creates the `pdfs` bucket and verifies tables (or runs `schema.sql` if `DAT
 ### Create and share flow
 
 1. Open `/create/` and choose **Brochure** or **Flyer**, then upload a PDF.
-2. Copy the share link (`/view/{token}`) and send it to your client.
+2. Copy the share link (`/view/{token}`) and send it to your client. Links do not expire.
 3. The viewer opens in the selected mode automatically.
 
 | Type | PDF | Viewer |
 |------|-----|--------|
 | **Brochure** | Any page count | Book flip (turn.js double-page spread) |
-| **Flyer** | 6 pages (outside 1–3, inside 4–6) | Trifold — 3 panels side-by-side, fold transition between spreads |
+| **Flyer** | 2-page landscape print sheet, 3 square/portrait pages, or 6 pages | Physical trifold — closed cover, left flap, full front, then flip to the back |
 
-Brochure links use page-flip mode. Flyer links use trifold layout (pages 1–3, then 4–6). Non-6-page flyers still open with a warning banner.
+Flyer PDFs always use six virtual slots (front 1–3, back 4–5–0). Empty back slots stay blank paper and still flip.
+
+- **2 landscape pages** (canonical print sheet, e.g. MIRAVERA ~12.8×8.5"): each page is sliced into 3 panels (outside + inside)
+- **3 square or portrait pages**: pages 1–3 fill the front; the back is blank
+- **6 pages** (portrait): pages 1–3 fronts, 4–6 backs (last page sits in slot 0)
+- **1 wide sheet**: fronts only; back slots stay blank
+- Other page counts still open, with a warning banner
+
+Each click (or swipe / arrow) advances one fold. Input is locked until the flip finishes. The fully open 3-panel width is what fits to the screen.
 
 ## Production deployment
 
@@ -62,7 +70,17 @@ Brochure links use page-flip mode. Flyer links use trifold layout (pages 1–3, 
 
 The site is configured for Netlify via [`netlify.toml`](netlify.toml). Static assets are served from the CDN; API routes run as Netlify Functions. PDF uploads go **directly to Supabase Storage** (signed URLs), so large files work despite Netlify’s function size limits.
 
-1. **Push this repo to GitHub** (Netlify deploys from git). The commit must include [`netlify.toml`](netlify.toml), [`netlify/functions/`](netlify/functions/), [`create/`](create/), and [`server/lib/`](server/lib/).
+**Deploy without GitHub** (from this folder):
+
+```bash
+npm install
+npx netlify login
+npx netlify link          # choose site: vsph-pdfviewer
+npm run deploy:netlify    # builds functions + publishes site
+npm run verify:netlify    # checks /view and /api/pdf on live URL
+```
+
+1. **Push or deploy** the current project folder — Netlify must receive [`netlify.toml`](netlify.toml), all [`netlify/functions/`](netlify/functions/) files (including `api-pdf.js`), and [`server/lib/`](server/lib/).
 2. In **Site configuration → Build & deploy**, confirm:
    - **Base directory:** *(empty)*
    - **Build command:** `npm install` *(or leave blank — [`netlify.toml`](netlify.toml) sets this)*
@@ -70,10 +88,9 @@ The site is configured for Netlify via [`netlify.toml`](netlify.toml). Static as
 3. Set environment variables under **Site settings → Environment variables**:
    - `BASE_URL` — your Netlify URL, e.g. `https://your-site.netlify.app`
    - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` (`pdfs`)
-   - `DEFAULT_LINK_EXPIRY_HOURS` (`168`)
    - For `SUPABASE_SERVICE_ROLE_KEY`, paste **only the key value** in the Value field (starts with `eyJ...` or `sb_secret_...`). Do **not** include `SUPABASE_SERVICE_ROLE_KEY=` in the value.
 3. Run [`supabase/schema.sql`](supabase/schema.sql) and [`supabase/migrations/001_add_view_type.sql`](supabase/migrations/001_add_view_type.sql) in the Supabase SQL Editor if not already applied.
-4. After deploy, confirm the deploy log lists **4 functions** (`api-health`, `api-documents-prepare`, `api-links`, `view`).
+4. After deploy, confirm the deploy log lists **6 functions** (`api-health`, `api-documents-prepare`, `api-links`, `api-pdf-url`, `api-pdf`, `view`).
 5. Verify `GET /api/health` returns `{ "ok": true, "supabaseOk": true }`.
 6. Open a share link `/view/<token>` — should redirect to the flipbook viewer (not Netlify “Page not found”).
 7. Run `npm run validate:env` locally to check your key before deploying.

@@ -12,7 +12,8 @@ const {
   getHealthAsync,
   prepareDocumentUpload,
   createAccessLink,
-  getPdfRedirectForToken,
+  getPdfSignedUrlForToken,
+  getPdfResponseForToken,
   getViewRedirect,
 } = require('./lib/api-handlers');
 const { MAX_UPLOAD_BYTES, getBaseUrl } = require('./lib/constants');
@@ -78,10 +79,18 @@ app.get('/api/health', async (_req, res) => {
   res.status(result.status).json(result.body);
 });
 
+app.get('/api/pdf-url/:token', requireSupabase, async (req, res) => {
+  const result = await getPdfSignedUrlForToken(req.params.token);
+  res.status(result.status).json(result.body);
+});
+
 app.get('/api/pdf/:token', requireSupabase, async (req, res) => {
-  const result = await getPdfRedirectForToken(req.params.token);
-  if (result.status === 302) {
-    res.redirect(result.status, result.headers.Location);
+  const result = await getPdfResponseForToken(req.params.token);
+  if (result.binary) {
+    for (const [key, value] of Object.entries(result.headers || {})) {
+      res.setHeader(key, value);
+    }
+    res.status(result.status).send(result.body);
     return;
   }
   res.status(result.status).json(result.body);
@@ -181,6 +190,6 @@ app.listen(PORT, () => {
   console.log(`PDF Viewer running at ${BASE_URL}`);
   console.log(`Create: ${BASE_URL}/create/`);
   if (!isSupabaseConfigured()) {
-    console.warn('Supabase not configured ù upload/link APIs disabled until .env is set.');
+    console.warn('Supabase not configured ? upload/link APIs disabled until .env is set.');
   }
 });

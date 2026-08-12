@@ -9,6 +9,8 @@
     "setup:supabase": "node scripts/setup-supabase.js",
     "migrate:view-type": "node scripts/migrate-view-type.js",
     "validate:env": "node scripts/validate-env.js",
+    "verify:netlify": "node scripts/verify-netlify.js",
+    "deploy:netlify": "netlify deploy --prod",
     "test:e2e": "node scripts/e2e-test.js"
   },
   "engines": {
@@ -21,5 +23,8 @@
     "express-rate-limit": "^8.5.2",
     "multer": "^1.4.5-lts.1",
     "pg": "^8.13.3"
+  },
+  "devDependencies": {
+    "netlify-cli": "^26.1.0"
   }
 }

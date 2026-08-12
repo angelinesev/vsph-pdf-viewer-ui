@@ -16,6 +16,12 @@ async function probeViewTypeColumn(supabase) {
   if (hasViewTypeColumn !== null) return hasViewTypeColumn;
 
   const { error } = await supabase.from('pdf_documents').select('view_type').limit(0);
+  if (error) {
+    const text = `${error.code || ''} ${error.message || ''}`;
+    if (/fetch failed|enotfound|econnrefused|etimedout/i.test(text)) {
+      throw error;
+    }
+  }
   hasViewTypeColumn = !isMissingViewTypeError(error);
   return hasViewTypeColumn;
 }

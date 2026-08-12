@@ -183,10 +183,10 @@
       <label class="type-option">
         <input type="radio" name="viewType" value="flyer" />
         <strong>Flyer</strong>
-        <span>Trifold ù 6 pages</span>
+        <span>Physical trifold (2-page print sheet or 3-page flyer)</span>
       </label>
     </div>
-    <p id="flyerHint" hidden>Use a 6-page PDF in print order: outside panels 1ù3, inside panels 4ù6.</p>
+    <p id="flyerHint" hidden>Best: 2 landscape pages with 3 panels each (outside + inside), like the MIRAVERA print sheet. Also: 3 square/portrait pages (left, cover, right) or 6 pages (fronts 1&#8211;3, backs 4&#8211;6). Other files open with a warning.</p>
 
     <label>PDF file</label>
     <div class="dropzone" id="dropzone">
@@ -195,9 +195,6 @@
     </div>
     <input id="fileInput" type="file" accept="application/pdf" />
     <p id="fileName"></p>
-
-    <label for="expiryHours">Link expires in (hours)</label>
-    <input id="expiryHours" type="number" min="1" max="720" value="168" />
 
     <button id="createBtn" class="primary" type="button" disabled>Create &amp; share</button>
 
@@ -208,7 +205,6 @@
         <input id="shareUrl" type="text" readonly />
         <button id="copyBtn" type="button">Copy</button>
       </div>
-      <p style="margin: 0.75rem 0 0; font-size: 0.9rem;">Expires: <span id="expiresAt"></span></p>
       <div class="actions">
         <a id="previewLink" class="preview" href="#" target="_blank" rel="noopener">Open flipbook</a>
         <a class="home" href="/create/">Create another</a>
@@ -227,6 +223,7 @@
       const status = document.getElementById('status');
 
       let selectedFile = null;
+      let supabaseReady = true;
 
       function getViewType() {
         const checked = document.querySelector('input[name="viewType"]:checked');
@@ -261,13 +258,15 @@
             throw new Error(error || 'Cannot reach server.');
           }
           if (!data.supabaseOk) {
+            supabaseReady = false;
             status.hidden = false;
             status.className = 'card err';
-            status.textContent = data.hint || 'Upload unavailable ù Supabase not configured.';
+            status.textContent = data.hint || 'Upload unavailable ? Supabase is not reachable.';
             createBtn.disabled = true;
           }
         })
         .catch((err) => {
+          supabaseReady = false;
           status.hidden = false;
           status.className = 'card err';
           status.textContent = err.message || 'Cannot reach server.';
@@ -281,8 +280,11 @@
         }
         selectedFile = file;
         fileName.textContent = file.name;
-        createBtn.disabled = false;
+        createBtn.disabled = !supabaseReady;
         errorBox.hidden = true;
+        if (!supabaseReady) {
+          showError('Upload is unavailable until Supabase is reachable. Check the message above.');
+        }
       }
 
       dropzone.addEventListener('click', () => fileInput.click());
@@ -313,7 +315,6 @@
       });
 
       createBtn.addEventListener('click', async () => {
-        const expiryHours = Number(document.getElementById('expiryHours').value) || 168;
         errorBox.hidden = true;
 
         if (!selectedFile) {
@@ -322,7 +323,7 @@
         }
 
         createBtn.disabled = true;
-        createBtn.textContent = 'Creatingù';
+        createBtn.textContent = 'Creating?';
 
         try {
           const viewType = getViewType();
@@ -354,7 +355,6 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               document_id: prepareData.document.id,
-              expires_in_hours: expiryHours,
               view_type: viewType,
             }),
           });
@@ -368,7 +368,6 @@
 
           document.getElementById('shareUrl').value = shareUrl;
           document.getElementById('previewLink').href = shareUrl;
-          document.getElementById('expiresAt').textContent = new Date(linkData.expires_at).toLocaleString();
           result.hidden = false;
         } catch (err) {
           showError(err.message);

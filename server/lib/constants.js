@@ -7,10 +7,6 @@ function getBaseUrl() {
   return (process.env.BASE_URL || `http://localhost:${port}`).replace(/\/$/, '');
 }
 
-function getDefaultLinkExpiryHours() {
-  return Number(process.env.DEFAULT_LINK_EXPIRY_HOURS) || 168;
-}
-
 function parseViewType(value) {
   return value === 'flyer' ? 'flyer' : 'brochure';
 }
@@ -24,7 +20,6 @@ module.exports = {
   VIEWER_PATH,
   SIGNED_URL_TTL_SEC,
   getBaseUrl,
-  getDefaultLinkExpiryHours,
   parseViewType,
   safeFilename,
 };

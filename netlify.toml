@@ -23,6 +23,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/pdf-url/*"
+  to = "/.netlify/functions/api-pdf-url/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/pdf/*"
+  to = "/.netlify/functions/api-pdf/:splat"
+  status = 200
+
+[[redirects]]
   from = "/view/*"
   to = "/.netlify/functions/view/:splat"
   status = 200

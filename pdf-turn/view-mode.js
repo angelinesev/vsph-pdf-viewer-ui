@@ -16,8 +16,17 @@ var viewMode = {
 	init: function () {
 		$(document).on('pagesloaded', () => {
 			if (this.get() === 'flyer') {
+				var trifoldTries = 0;
 				var startTrifold = () => {
 					if (trifold.active) return;
+					if (typeof bookFlip !== 'undefined' && bookFlip.active) {
+						bookFlip.stop();
+					}
+					if (typeof trifold.pagesReady === 'function' && !trifold.pagesReady() && trifoldTries < 50) {
+						trifoldTries += 1;
+						setTimeout(startTrifold, 100);
+						return;
+					}
 					trifold._ready = true;
 					trifold.start();
 				};

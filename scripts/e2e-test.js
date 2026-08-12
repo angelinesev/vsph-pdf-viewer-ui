@@ -119,7 +119,6 @@ async function main() {
 
   const linkBody = JSON.stringify({
     document_id: prepare.json.document.id,
-    expires_in_hours: 1,
     view_type: 'brochure',
   });
 
@@ -138,12 +137,8 @@ async function main() {
 
   const token = link.json.token;
   const pdfRes = await request('GET', `/api/pdf/${token}`);
-  if (pdfRes.status !== 302) {
-    throw new Error(`PDF redirect failed (${pdfRes.status}): ${pdfRes.text}`);
-  }
-
-  if (!pdfRes.headers.location) {
-    throw new Error('PDF redirect missing Location header');
+  if (pdfRes.status !== 200) {
+    throw new Error(`PDF proxy failed (${pdfRes.status}): ${pdfRes.text}`);
   }
 
   const view = await request('GET', `/view/${token}`);
@@ -156,12 +151,62 @@ async function main() {
     throw new Error(`View redirect missing view=brochure: ${location}`);
   }
 
-  if (!location.includes('file=')) {
-    throw new Error(`View redirect missing signed file URL: ${location}`);
+  const hasSameOriginPdf = location.includes('api%2Fpdf') || location.includes('/api/pdf/');
+  if (!hasSameOriginPdf) {
+    throw new Error(`View redirect missing /api/pdf token URL: ${location}`);
+  }
+
+  const flyerPrepareBody = JSON.stringify({
+    filename: 'sample-flyer.pdf',
+    view_type: 'flyer',
+    size_bytes: pdf.length,
+  });
+  const flyerPrepare = await request('POST', '/api/documents/prepare', {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(flyerPrepareBody),
+  }, flyerPrepareBody);
+  if (flyerPrepare.status !== 201) {
+    throw new Error(`Flyer prepare failed (${flyerPrepare.status}): ${flyerPrepare.text}`);
+  }
+  if (flyerPrepare.json.document.view_type !== 'flyer') {
+    throw new Error(`Expected view_type flyer, got ${flyerPrepare.json.document.view_type}`);
+  }
+
+  const flyerPut = await externalPut(flyerPrepare.json.upload.signedUrl, pdf);
+  if (flyerPut.status < 200 || flyerPut.status >= 300) {
+    throw new Error(`Flyer signed upload failed (${flyerPut.status}): ${flyerPut.text}`);
+  }
+
+  const flyerLinkBody = JSON.stringify({
+    document_id: flyerPrepare.json.document.id,
+    view_type: 'flyer',
+  });
+  const flyerLink = await request('POST', '/api/links', {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(flyerLinkBody),
+  }, flyerLinkBody);
+  if (flyerLink.status !== 201) {
+    throw new Error(`Flyer link failed (${flyerLink.status}): ${flyerLink.text}`);
+  }
+  if (flyerLink.json.view_type !== 'flyer') {
+    throw new Error(`Expected link view_type flyer, got ${flyerLink.json.view_type}`);
+  }
+  if (!String(flyerLink.json.url || '').includes('view=flyer')) {
+    throw new Error(`Flyer share URL missing view=flyer: ${flyerLink.json.url}`);
+  }
+
+  const flyerView = await request('GET', `/view/${flyerLink.json.token}?view=flyer`);
+  if (flyerView.status !== 302) {
+    throw new Error(`Flyer view redirect failed (${flyerView.status})`);
+  }
+  const flyerLocation = flyerView.headers.location || '';
+  if (!flyerLocation.includes('view=flyer')) {
+    throw new Error(`Flyer view redirect missing view=flyer: ${flyerLocation}`);
   }
 
   console.log('E2E passed');
   console.log(`Client URL: ${link.json.url}`);
+  console.log(`Flyer URL: ${flyerLink.json.url}`);
 }
 
 main().catch((err) => {

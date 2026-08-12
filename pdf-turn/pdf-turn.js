@@ -25,10 +25,17 @@ var bookFlip = {
 
 		$(document).on('rotationchanging', () => { this.rotate(); });
 		$(document).on('scalechanging', () => {
-			if (this.active) {
-				this._measurePages();
-				this.resize();
+			if (!this.active) return;
+			if (PDFViewerApplication.pdfViewer.isInPresentationMode) {
+				this.fitToScreen();
+				return;
 			}
+			this._measurePages();
+			this.resize();
+		});
+
+		fitScreen.bindPresentationReflow(() => {
+			if (this.active) this.fitToScreen();
 		});
 		$(document).on('pagechanging', () => { this.flip(); });
 
@@ -39,6 +46,7 @@ var bookFlip = {
 		});
 
 		$(document).on('scrollmodechanged', () => {
+			if (typeof viewMode !== 'undefined' && viewMode.get() === 'flyer') return;
 			var scroll = PDFViewerApplication.pdfViewer.scrollMode;
 			if (scroll === 3) this.start();
 			else this.stop();
@@ -121,6 +129,7 @@ var bookFlip = {
 	},
 
 	start: function () {
+		if (typeof viewMode !== 'undefined' && viewMode.get() === 'flyer') return;
 		if (this.active || !this._ready) return;
 		this.active = true;
 
