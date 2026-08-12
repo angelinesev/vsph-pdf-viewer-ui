@@ -1,4 +1,5 @@
--- Run in Supabase SQL Editor (Dashboard ? SQL ? New query)
+-- Fresh install: run this file, then migrations/002_multi_tenant.sql
+-- Existing projects: run 001_add_view_type.sql then 002_multi_tenant.sql
 
 -- Private PDF storage bucket
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -11,7 +12,7 @@ values (
 )
 on conflict (id) do nothing;
 
--- Document metadata
+-- Legacy document metadata (kept for cutover)
 create table if not exists public.pdf_documents (
   id uuid primary key default gen_random_uuid(),
   storage_path text not null unique,
@@ -20,7 +21,6 @@ create table if not exists public.pdf_documents (
   created_at timestamptz not null default now()
 );
 
--- Expiring client access tokens
 create table if not exists public.pdf_access_links (
   token text primary key,
   document_id uuid not null references public.pdf_documents(id) on delete cascade,
@@ -35,14 +35,22 @@ create index if not exists pdf_access_links_expires_at_idx
 create index if not exists pdf_access_links_document_id_idx
   on public.pdf_access_links (document_id);
 
--- RLS: service role bypasses; anon/authenticated have no direct access
 alter table public.pdf_documents enable row level security;
 alter table public.pdf_access_links enable row level security;
 
--- Storage policies: only service role (used by API server) can read/write
-create policy "Service role manages pdfs"
-  on storage.objects
-  for all
-  to service_role
-  using (bucket_id = 'pdfs')
-  with check (bucket_id = 'pdfs');
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and policyname = 'Service role manages pdfs'
+  ) then
+    create policy "Service role manages pdfs"
+      on storage.objects
+      for all
+      to service_role
+      using (bucket_id = 'pdfs')
+      with check (bucket_id = 'pdfs');
+  end if;
+end $$;
+
+-- Next: run migrations/002_multi_tenant.sql

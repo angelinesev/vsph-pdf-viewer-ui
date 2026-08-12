@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Portal — Brochure SaaS</title>
+    <link rel="stylesheet" href="../shared/portal.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="nav">
+        <div>
+          <h1>Admin Portal</h1>
+          <p class="lead">Manage plans, organizations, and developer codes.</p>
+        </div>
+        <button id="logoutBtn" class="secondary hidden" type="button">Sign out</button>
+      </div>
+
+      <div id="loginPanel" class="panel">
+        <label for="email">Admin email</label>
+        <input id="email" type="email" autocomplete="username" />
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" />
+        <div class="row">
+          <button id="loginBtn" type="button">Sign in</button>
+        </div>
+        <details style="margin-top:1rem">
+          <summary class="muted">First-time bootstrap</summary>
+          <label for="bootstrapSecret">Bootstrap secret</label>
+          <input id="bootstrapSecret" type="password" placeholder="BOOTSTRAP_SECRET" />
+          <button id="bootstrapBtn" class="secondary" type="button">Create first admin</button>
+        </details>
+        <p id="loginError" class="err"></p>
+      </div>
+
+      <div id="appPanel" class="hidden">
+        <div class="panel">
+          <h2 style="margin:0 0 0.75rem;font-size:1.1rem">Plans</h2>
+          <div id="plansList" class="muted">Loading…</div>
+          <div class="row">
+            <div>
+              <label>Name</label>
+              <input id="planName" placeholder="Enterprise" />
+            </div>
+            <div>
+              <label>Monthly limit</label>
+              <input id="planLimit" type="number" value="250" />
+            </div>
+            <div>
+              <label>Max MB</label>
+              <input id="planMb" type="number" value="50" />
+            </div>
+          </div>
+          <button id="createPlanBtn" type="button">Create plan</button>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin:0 0 0.75rem;font-size:1.1rem">Organizations</h2>
+          <div class="row">
+            <div>
+              <label>Name</label>
+              <input id="orgName" placeholder="Acme Realty" />
+            </div>
+            <div>
+              <label>Plan</label>
+              <select id="orgPlan"></select>
+            </div>
+          </div>
+          <button id="createOrgBtn" type="button">Create organization</button>
+          <table style="margin-top:1rem">
+            <thead>
+              <tr><th>Org</th><th>Plan</th><th>Usage</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="orgRows"></tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin:0 0 0.75rem;font-size:1.1rem">Developer codes</h2>
+          <div class="row">
+            <div>
+              <label>Organization</label>
+              <select id="codeOrg"></select>
+            </div>
+            <div>
+              <label>Code</label>
+              <input id="devCode" placeholder="ACME-DEV" />
+            </div>
+            <div>
+              <label>Password</label>
+              <input id="devPassword" type="password" />
+            </div>
+          </div>
+          <button id="createCodeBtn" type="button">Create developer code</button>
+          <p id="codesMsg" class="muted"></p>
+          <table style="margin-top:1rem">
+            <thead><tr><th>Code</th><th>Active</th><th>Created</th><th></th></tr></thead>
+            <tbody id="codeRows"></tbody>
+          </table>
+        </div>
+        <p id="adminError" class="err"></p>
+      </div>
+    </div>
+
+    <script src="../shared/config.js"></script>
+    <script src="../shared/api.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

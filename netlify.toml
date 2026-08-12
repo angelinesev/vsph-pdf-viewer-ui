@@ -1,11 +1,17 @@
 [build]
-  command = "npm install"
+  command = "node scripts/write-portal-config.js && npm install"
   publish = "."
   functions = "netlify/functions"
 
 [functions]
   node_bundler = "esbuild"
   included_files = ["server/lib/**"]
+
+# Legacy Netlify API (kept during cutover; prefer Supabase Edge Functions)
+[[redirects]]
+  from = "/api/saas/*"
+  to = "/.netlify/functions/saas/:splat"
+  status = 200
 
 [[redirects]]
   from = "/api/health"
@@ -37,12 +43,33 @@
   to = "/.netlify/functions/view/:splat"
   status = 200
 
+# Portals live under /apps/* (relative shared assets require real paths)
 [[redirects]]
   from = "/admin"
-  to = "/create/"
+  to = "/apps/admin/"
   status = 301
 
 [[redirects]]
-  from = "/admin/*"
-  to = "/create/"
+  from = "/admin/"
+  to = "/apps/admin/"
+  status = 301
+
+[[redirects]]
+  from = "/developer"
+  to = "/apps/developer/"
+  status = 301
+
+[[redirects]]
+  from = "/developer/"
+  to = "/apps/developer/"
+  status = 301
+
+[[redirects]]
+  from = "/create"
+  to = "/apps/developer/"
+  status = 301
+
+[[redirects]]
+  from = "/create/"
+  to = "/apps/developer/"
   status = 301

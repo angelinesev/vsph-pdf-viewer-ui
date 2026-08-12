@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Developer Portal — Brochure SaaS</title>
+    <link rel="stylesheet" href="../shared/portal.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="nav">
+        <div>
+          <h1>Developer Portal</h1>
+          <p class="lead">Sign in with your developer code to upload brochures and flyers.</p>
+        </div>
+        <button id="logoutBtn" class="secondary hidden" type="button">Sign out</button>
+      </div>
+
+      <div id="loginPanel" class="panel">
+        <label for="code">Developer code</label>
+        <input id="code" autocomplete="username" placeholder="ORG-CODE" />
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" />
+        <button id="loginBtn" type="button">Sign in</button>
+        <p id="loginError" class="err"></p>
+      </div>
+
+      <div id="appPanel" class="hidden">
+        <div class="panel">
+          <div class="row">
+            <div>
+              <strong id="orgName">Organization</strong>
+              <div class="muted" id="planLine">Plan</div>
+            </div>
+            <div>
+              <div class="muted">Quota this month</div>
+              <div><span id="quotaUsed">0</span> / <span id="quotaLimit">0</span></div>
+              <div class="meter"><span id="quotaBar" style="width:0%"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin:0 0 0.5rem;font-size:1.1rem">Upload</h2>
+          <label>Document type</label>
+          <div class="row">
+            <label><input type="radio" name="viewType" value="brochure" checked /> Brochure</label>
+            <label><input type="radio" name="viewType" value="flyer" /> Flyer</label>
+          </div>
+          <div class="dropzone" id="dropzone">
+            <p><strong>Choose a PDF</strong> or drag it here</p>
+            <p class="muted">Max size follows your plan</p>
+          </div>
+          <input id="fileInput" type="file" accept="application/pdf" hidden />
+          <p id="fileName" class="muted"></p>
+          <button id="uploadBtn" type="button" disabled>Upload &amp; create share link</button>
+          <p id="uploadError" class="err"></p>
+          <div id="result" class="hidden">
+            <p class="ok"><strong>Ready</strong></p>
+            <label>Share link</label>
+            <div class="row">
+              <input id="shareUrl" readonly />
+              <button id="copyBtn" class="secondary" type="button">Copy</button>
+            </div>
+            <p><a id="openLink" href="#" target="_blank" rel="noopener">Open flipbook</a></p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin:0 0 0.75rem;font-size:1.1rem">Your brochures</h2>
+          <table>
+            <thead>
+              <tr><th>File</th><th>Type</th><th>Created</th><th></th></tr>
+            </thead>
+            <tbody id="brochureRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="../shared/config.js"></script>
+    <script src="../shared/api.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

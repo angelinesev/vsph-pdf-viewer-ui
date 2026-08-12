@@ -105,7 +105,23 @@ app.get('/view/:token', requireSupabase, async (req, res) => {
   sendHandlerResult(res, result);
 });
 
-app.use('/admin', (_req, res) => res.redirect('/create/'));
+app.get('/admin', (_req, res) => res.redirect('/apps/admin/'));
+app.get('/admin/', (_req, res) => res.redirect('/apps/admin/'));
+app.get('/developer', (_req, res) => res.redirect('/apps/developer/'));
+app.get('/developer/', (_req, res) => res.redirect('/apps/developer/'));
+app.get('/create', (_req, res) => res.redirect('/apps/developer/'));
+app.get('/create/', (_req, res) => res.redirect('/apps/developer/'));
+
+app.all('/api/saas/:name', requireSupabase, async (req, res) => {
+  const { routeSaas } = require('./lib/saas-handlers');
+  const result = await routeSaas(
+    req.params.name,
+    { method: req.method, headers: req.headers },
+    req.body || {},
+    req.query || {},
+  );
+  res.status(result.status).json(result.body);
+});
 
 app.post('/api/documents/prepare', uploadLimiter, requireSupabase, async (req, res) => {
   const result = await prepareDocumentUpload(req.body || {});

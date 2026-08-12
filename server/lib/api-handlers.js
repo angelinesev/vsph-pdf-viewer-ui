@@ -182,6 +182,30 @@ async function getHealthAsync() {
 }
 
 async function lookupAccessLink(supabase, token) {
+  // Prefer multi-tenant brochure_links
+  const { data: brochureLink, error: brochureLinkError } = await supabase
+    .from('brochure_links')
+    .select('token, view_type, expires_at, brochure_id, brochures(storage_path, filename, view_type)')
+    .eq('token', token)
+    .maybeSingle();
+
+  if (!brochureLinkError && brochureLink) {
+    const brochure = Array.isArray(brochureLink.brochures)
+      ? brochureLink.brochures[0]
+      : brochureLink.brochures;
+    return {
+      link: {
+        document_id: brochureLink.brochure_id,
+        expires_at: brochureLink.expires_at,
+        view_type: brochureLink.view_type,
+        storage_path: brochure?.storage_path,
+        filename: brochure?.filename,
+        source: 'brochure_links',
+      },
+      linkError: null,
+    };
+  }
+
   let link;
   let linkError;
   ({ data: link, error: linkError } = await supabase
@@ -198,10 +222,32 @@ async function lookupAccessLink(supabase, token) {
       .maybeSingle());
   }
 
-  return { link, linkError };
+  // Ignore "relation does not exist" style errors when brochure_links missing
+  if (brochureLinkError && !String(brochureLinkError.message || '').includes('does not exist')) {
+    // fall through to legacy
+  }
+
+  return { link: link ? { ...link, source: 'pdf_access_links' } : null, linkError };
 }
 
-async function getDocumentStoragePath(supabase, documentId) {
+async function getDocumentStoragePath(supabase, documentId, preloaded) {
+  if (preloaded?.storage_path) {
+    return {
+      doc: {
+        storage_path: preloaded.storage_path,
+        filename: preloaded.filename || 'document.pdf',
+      },
+      docError: null,
+    };
+  }
+
+  const { data: brochure } = await supabase
+    .from('brochures')
+    .select('storage_path, filename')
+    .eq('id', documentId)
+    .maybeSingle();
+  if (brochure) return { doc: brochure, docError: null };
+
   const { data: doc, error: docError } = await supabase
     .from('pdf_documents')
     .select('storage_path, filename')
@@ -387,7 +433,7 @@ async function resolvePdfAccess(token) {
     return { error: { status: 410, body: { error: 'Link expired' } } };
   }
 
-  const { doc, docError } = await getDocumentStoragePath(supabase, link.document_id);
+  const { doc, docError } = await getDocumentStoragePath(supabase, link.document_id, link);
 
   if (docError) {
     return { error: formatSupabaseError(docError) };
@@ -479,7 +525,7 @@ async function getViewRedirect(token, queryView) {
     return { status: 410, body: 'Link expired', contentType: 'text/plain' };
   }
 
-  const { doc, docError } = await getDocumentStoragePath(supabase, link.document_id);
+  const { doc, docError } = await getDocumentStoragePath(supabase, link.document_id, link);
 
   if (docError) {
     const formatted = formatSupabaseError(docError);
