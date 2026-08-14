@@ -7,7 +7,7 @@ values (
   'pdfs',
   'pdfs',
   false,
-  52428800,
+  78643200,
   array['application/pdf']
 )
 on conflict (id) do nothing;

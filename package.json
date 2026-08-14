@@ -11,6 +11,8 @@
     "migrate:tenancy": "node scripts/migrate-legacy-to-tenancy.js",
     "validate:env": "node scripts/validate-env.js",
     "write:config": "node scripts/write-portal-config.js",
+    "reset:admin": "node scripts/reset-admin.js",
+    "apply:plan-tiers": "node scripts/apply-plan-tiers.js",
     "verify:netlify": "node scripts/verify-netlify.js",
     "deploy:netlify": "netlify deploy --prod",
     "test:e2e": "node scripts/e2e-test.js"

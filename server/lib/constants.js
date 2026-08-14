@@ -1,10 +1,15 @@
-const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 75 * 1024 * 1024;
 const VIEWER_PATH = '/external/pdfjs-2.1.266-dist/web/viewer.html';
 const SIGNED_URL_TTL_SEC = 3600;
 
 function getBaseUrl() {
   const port = Number(process.env.PORT) || 3000;
-  return (process.env.BASE_URL || `http://localhost:${port}`).replace(/\/$/, '');
+  const raw =
+    process.env.PUBLIC_BASE_URL
+    || process.env.BASE_URL
+    || process.env.URL
+    || `http://localhost:${port}`;
+  return String(raw).replace(/\/$/, '');
 }
 
 function parseViewType(value) {

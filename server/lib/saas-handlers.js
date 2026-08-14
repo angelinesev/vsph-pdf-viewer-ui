@@ -28,6 +28,47 @@ function verifyPassword(password, stored) {
   return derived.toString('hex') === expected;
 }
 
+function parseOptionalLimit(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.floor(n);
+}
+
+function parseOptionalBytes(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.floor(n);
+}
+
+async function getOrgUsage(supabase, orgId) {
+  const { data, error, count } = await supabase
+    .from('brochures')
+    .select('size_bytes', { count: 'exact' })
+    .eq('org_id', orgId);
+  if (error) throw error;
+  const storageUsed = (data || []).reduce((sum, row) => sum + Number(row.size_bytes || 0), 0);
+  return { active: count || 0, storageUsed };
+}
+
+function planBrochureLimit(plan) {
+  if (plan?.features?.unlimited_brochures) return null;
+  return plan?.monthly_brochure_limit == null ? null : plan.monthly_brochure_limit;
+}
+
+function remainingOf(used, limit) {
+  if (limit == null) return null;
+  return Math.max(limit - used, 0);
+}
+
+function planStorageLimit(plan) {
+  if (plan?.max_storage_bytes != null) return plan.max_storage_bytes;
+  if (plan?.features?.unlimited_storage) return null;
+  if (plan?.features?.max_storage_bytes != null) return Number(plan.features.max_storage_bytes);
+  return null;
+}
+
 function slugify(name) {
   return name
     .toLowerCase()
@@ -166,10 +207,20 @@ async function adminBootstrap(body) {
 
   let userId = created?.user?.id;
   if (createError) {
-    const { data: listUsers } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const found = (listUsers?.users || []).find((u) => u.email === email);
+    const target = email.toLowerCase();
+    let found = null;
+    for (let page = 1; page <= 10 && !found; page += 1) {
+      const { data: listUsers } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+      found = (listUsers?.users || []).find((u) => String(u.email || '').toLowerCase() === target) || null;
+      if (!listUsers?.users || listUsers.users.length < 200) break;
+    }
     if (!found) return { status: 500, body: { error: createError.message } };
     userId = found.id;
+    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+      password,
+      email_confirm: true,
+    });
+    if (updateError) return { status: 500, body: { error: updateError.message } };
   }
 
   const { error: adminError } = await supabase.from('platform_admins').upsert({
@@ -205,8 +256,9 @@ async function adminPlans(reqLike, body) {
       .from('plans')
       .insert({
         name,
-        monthly_brochure_limit: Number(body.monthly_brochure_limit ?? 10),
+        monthly_brochure_limit: parseOptionalLimit(body.monthly_brochure_limit),
         max_file_bytes: Number(body.max_file_bytes ?? 52428800),
+        max_storage_bytes: parseOptionalBytes(body.max_storage_bytes),
         features: body.features || { flyer: true, brochure: true },
       })
       .select('*')
@@ -226,25 +278,34 @@ async function adminOrgs(reqLike, body, query) {
   const action = query.action || 'list';
 
   if (method === 'GET' && action === 'list') {
-    const ym = yearMonth();
     const { data: orgs, error } = await supabase
       .from('organizations')
-      .select('id, name, slug, status, plan_id, created_at, plans(name, monthly_brochure_limit)')
+      .select('id, name, slug, status, plan_id, created_at, plans(name, monthly_brochure_limit, max_file_bytes, max_storage_bytes, features)')
       .order('created_at', { ascending: false });
     if (error) return { status: 500, body: { error: error.message } };
-    const { data: usage } = await supabase
-      .from('usage_monthly')
-      .select('org_id, brochure_count')
-      .eq('year_month', ym);
-    const usageMap = new Map((usage || []).map((u) => [u.org_id, u.brochure_count]));
+    const { data: brochures, error: brochureError } = await supabase
+      .from('brochures')
+      .select('org_id, size_bytes');
+    if (brochureError) return { status: 500, body: { error: brochureError.message } };
+    const usageMap = new Map();
+    (brochures || []).forEach((row) => {
+      const current = usageMap.get(row.org_id) || { active: 0, storageUsed: 0 };
+      current.active += 1;
+      current.storageUsed += Number(row.size_bytes || 0);
+      usageMap.set(row.org_id, current);
+    });
     return {
       status: 200,
       body: {
-        year_month: ym,
-        organizations: (orgs || []).map((o) => ({
-          ...o,
-          usage_this_month: usageMap.get(o.id) || 0,
-        })),
+        organizations: (orgs || []).map((o) => {
+          const usage = usageMap.get(o.id) || { active: 0, storageUsed: 0 };
+          return {
+            ...o,
+            active_brochures: usage.active,
+            storage_used_bytes: usage.storageUsed,
+            usage_this_month: usage.active,
+          };
+        }),
       },
     };
   }
@@ -280,6 +341,18 @@ async function adminOrgs(reqLike, body, query) {
     const password = String(body.password || '');
     if (!orgId || !code || !password) {
       return { status: 400, body: { error: 'org_id, code, and password are required' } };
+    }
+    const { count: activeCodes, error: countError } = await supabase
+      .from('developer_codes')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_id', orgId)
+      .eq('active', true);
+    if (countError) return { status: 500, body: { error: countError.message } };
+    if ((activeCodes || 0) > 0) {
+      return {
+        status: 409,
+        body: { error: 'This organization already has an access code. Revoke it first.' },
+      };
     }
     const { data, error } = await supabase
       .from('developer_codes')
@@ -323,7 +396,7 @@ async function uploadPrepare(reqLike, body) {
 
   const { data: plan, error: planError } = await supabase
     .from('plans')
-    .select('id, monthly_brochure_limit, max_file_bytes')
+    .select('id, monthly_brochure_limit, max_file_bytes, max_storage_bytes, features')
     .eq('id', auth.org.plan_id)
     .single();
   if (planError) return { status: 500, body: { error: planError.message } };
@@ -335,18 +408,33 @@ async function uploadPrepare(reqLike, body) {
     };
   }
 
-  const ym = yearMonth();
-  const { data: usage } = await supabase
-    .from('usage_monthly')
-    .select('brochure_count')
-    .eq('org_id', auth.org.id)
-    .eq('year_month', ym)
-    .maybeSingle();
-  const used = usage?.brochure_count || 0;
-  if (used >= plan.monthly_brochure_limit) {
+  let usage;
+  try {
+    usage = await getOrgUsage(supabase, auth.org.id);
+  } catch (err) {
+    return { status: 500, body: { error: err.message } };
+  }
+
+  if (planBrochureLimit(plan) != null && usage.active >= planBrochureLimit(plan)) {
     return {
       status: 402,
-      body: { error: 'Monthly brochure quota exceeded', used, limit: plan.monthly_brochure_limit, year_month: ym },
+      body: {
+        error: 'Active brochure quota exceeded',
+        used: usage.active,
+        limit: planBrochureLimit(plan),
+      },
+    };
+  }
+
+  const storageLimit = planStorageLimit(plan);
+  if (storageLimit != null && usage.storageUsed + sizeBytes > storageLimit) {
+    return {
+      status: 402,
+      body: {
+        error: 'Storage quota exceeded',
+        used: usage.storageUsed,
+        limit: storageLimit,
+      },
     };
   }
 
@@ -368,7 +456,12 @@ async function uploadPrepare(reqLike, body) {
         path: uploadData.path,
         token: uploadData.token,
       },
-      quota: { used, limit: plan.monthly_brochure_limit, year_month: ym },
+      quota: {
+        used: usage.active,
+        limit: planBrochureLimit(plan),
+        storage_used: usage.storageUsed,
+        max_storage_bytes: planStorageLimit(plan),
+      },
     },
   };
 }
@@ -452,7 +545,7 @@ async function linksCreate(reqLike, body) {
     .single();
   if (linkError) return { status: 500, body: { error: linkError.message } };
 
-  const base = (process.env.PUBLIC_BASE_URL || getBaseUrl()).replace(/\/$/, '');
+  const base = getBaseUrl();
   return {
     status: 201,
     body: {
@@ -468,29 +561,31 @@ async function quotaStatus(reqLike) {
   const auth = await requireDeveloper(reqLike);
   if (auth.error) return auth.error;
   const supabase = getSupabase();
-  const ym = yearMonth();
   const { data: plan, error: planError } = await supabase
     .from('plans')
-    .select('name, monthly_brochure_limit, max_file_bytes')
+    .select('name, monthly_brochure_limit, max_file_bytes, max_storage_bytes, features')
     .eq('id', auth.org.plan_id)
     .single();
   if (planError) return { status: 500, body: { error: planError.message } };
-  const { data: usage } = await supabase
-    .from('usage_monthly')
-    .select('brochure_count')
-    .eq('org_id', auth.org.id)
-    .eq('year_month', ym)
-    .maybeSingle();
-  const used = usage?.brochure_count || 0;
+  let usage;
+  try {
+    usage = await getOrgUsage(supabase, auth.org.id);
+  } catch (err) {
+    return { status: 500, body: { error: err.message } };
+  }
+  const brochureLimit = planBrochureLimit(plan);
+  const storageLimit = planStorageLimit(plan);
   return {
     status: 200,
     body: {
       organization: { id: auth.org.id, name: auth.org.name, slug: auth.org.slug },
       plan,
-      year_month: ym,
-      used,
-      limit: plan.monthly_brochure_limit,
-      remaining: Math.max(plan.monthly_brochure_limit - used, 0),
+      used: usage.active,
+      limit: brochureLimit,
+      remaining: remainingOf(usage.active, brochureLimit),
+      storage_used: usage.storageUsed,
+      max_storage_bytes: storageLimit,
+      storage_remaining: remainingOf(usage.storageUsed, storageLimit),
       max_file_bytes: plan.max_file_bytes,
     },
   };

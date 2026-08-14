@@ -29,15 +29,21 @@ Deno.serve(async (req) => {
       return jsonResponse(400, { error: "Invalid JSON" });
     }
     const name = String(body.name || "").trim();
-    const monthly = Number(body.monthly_brochure_limit ?? 10);
+    const monthly = body.monthly_brochure_limit === "" || body.monthly_brochure_limit == null
+      ? null
+      : Number(body.monthly_brochure_limit);
     const maxBytes = Number(body.max_file_bytes ?? 52428800);
+    const maxStorage = body.max_storage_bytes === "" || body.max_storage_bytes == null
+      ? null
+      : Number(body.max_storage_bytes);
     if (!name) return jsonResponse(400, { error: "name is required" });
     const { data, error } = await supabase
       .from("plans")
       .insert({
         name,
-        monthly_brochure_limit: monthly,
+        monthly_brochure_limit: monthly != null && Number.isFinite(monthly) && monthly >= 0 ? monthly : null,
         max_file_bytes: maxBytes,
+        max_storage_bytes: maxStorage != null && Number.isFinite(maxStorage) && maxStorage > 0 ? maxStorage : null,
         features: body.features || { flyer: true, brochure: true },
       })
       .select("*")
@@ -57,8 +63,17 @@ Deno.serve(async (req) => {
     }
     const patch: Record<string, unknown> = {};
     if (body.name != null) patch.name = String(body.name).trim();
-    if (body.monthly_brochure_limit != null) patch.monthly_brochure_limit = Number(body.monthly_brochure_limit);
+    if (body.monthly_brochure_limit != null) {
+      patch.monthly_brochure_limit = body.monthly_brochure_limit === ""
+        ? null
+        : Number(body.monthly_brochure_limit);
+    }
     if (body.max_file_bytes != null) patch.max_file_bytes = Number(body.max_file_bytes);
+    if (body.max_storage_bytes !== undefined) {
+      patch.max_storage_bytes = body.max_storage_bytes === "" || body.max_storage_bytes == null
+        ? null
+        : Number(body.max_storage_bytes);
+    }
     if (body.features != null) patch.features = body.features;
     const { data, error } = await supabase.from("plans").update(patch).eq("id", id).select("*").single();
     if (error) return jsonResponse(500, { error: error.message });

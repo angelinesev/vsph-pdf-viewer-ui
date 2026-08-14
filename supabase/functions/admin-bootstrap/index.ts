@@ -44,11 +44,20 @@ Deno.serve(async (req) => {
 
   let userId = created?.user?.id;
   if (createError) {
-    // User may already exist
-    const { data: listUsers } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const found = (listUsers?.users || []).find((u) => u.email === email);
+    const target = email.toLowerCase();
+    let found: { id: string } | undefined;
+    for (let page = 1; page <= 10 && !found; page += 1) {
+      const { data: listUsers } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+      found = (listUsers?.users || []).find((u) => String(u.email || "").toLowerCase() === target);
+      if (!listUsers?.users || listUsers.users.length < 200) break;
+    }
     if (!found) return jsonResponse(500, { error: createError.message });
     userId = found.id;
+    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+      password,
+      email_confirm: true,
+    });
+    if (updateError) return jsonResponse(500, { error: updateError.message });
   }
 
   const { error: adminError } = await supabase.from("platform_admins").upsert({

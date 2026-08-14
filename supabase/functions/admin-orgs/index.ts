@@ -1,5 +1,5 @@
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
-import { getServiceClient, yearMonth } from "../_shared/supabase.ts";
+import { getServiceClient } from "../_shared/supabase.ts";
 import { hashPassword, requireAdmin } from "../_shared/auth.ts";
 
 function slugify(name: string) {
@@ -22,24 +22,34 @@ Deno.serve(async (req) => {
   const action = url.searchParams.get("action") || "list";
 
   if (req.method === "GET" && action === "list") {
-    const ym = yearMonth();
     const { data: orgs, error } = await supabase
       .from("organizations")
-      .select("id, name, slug, status, plan_id, created_at, plans(name, monthly_brochure_limit)")
+      .select("id, name, slug, status, plan_id, created_at, plans(name, monthly_brochure_limit, max_file_bytes, max_storage_bytes, features)")
       .order("created_at", { ascending: false });
     if (error) return jsonResponse(500, { error: error.message });
 
-    const { data: usage } = await supabase
-      .from("usage_monthly")
-      .select("org_id, brochure_count")
-      .eq("year_month", ym);
+    const { data: brochures, error: brochureError } = await supabase
+      .from("brochures")
+      .select("org_id, size_bytes");
+    if (brochureError) return jsonResponse(500, { error: brochureError.message });
 
-    const usageMap = new Map((usage || []).map((u) => [u.org_id, u.brochure_count]));
-    const enriched = (orgs || []).map((o) => ({
-      ...o,
-      usage_this_month: usageMap.get(o.id) || 0,
-    }));
-    return jsonResponse(200, { organizations: enriched, year_month: ym });
+    const usageMap = new Map<string, { active: number; storageUsed: number }>();
+    (brochures || []).forEach((row) => {
+      const current = usageMap.get(row.org_id) || { active: 0, storageUsed: 0 };
+      current.active += 1;
+      current.storageUsed += Number(row.size_bytes || 0);
+      usageMap.set(row.org_id, current);
+    });
+    const enriched = (orgs || []).map((o) => {
+      const usage = usageMap.get(o.id) || { active: 0, storageUsed: 0 };
+      return {
+        ...o,
+        active_brochures: usage.active,
+        storage_used_bytes: usage.storageUsed,
+        usage_this_month: usage.active,
+      };
+    });
+    return jsonResponse(200, { organizations: enriched });
   }
 
   if (req.method === "GET" && action === "codes") {
@@ -104,6 +114,15 @@ Deno.serve(async (req) => {
     const password = String(body.password || "");
     if (!orgId || !code || !password) {
       return jsonResponse(400, { error: "org_id, code, and password are required" });
+    }
+    const { count: activeCodes, error: countError } = await supabase
+      .from("developer_codes")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("active", true);
+    if (countError) return jsonResponse(500, { error: countError.message });
+    if ((activeCodes || 0) > 0) {
+      return jsonResponse(409, { error: "This organization already has an access code. Revoke it first." });
     }
     const password_hash = await hashPassword(password);
     const { data, error } = await supabase

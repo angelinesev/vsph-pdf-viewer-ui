@@ -55,7 +55,7 @@ async function ensureBucket(supabase) {
 
   const { error: createError } = await supabase.storage.createBucket(bucket, {
     public: false,
-    fileSizeLimit: 52428800,
+    fileSizeLimit: 78643200,
     allowedMimeTypes: ['application/pdf'],
   });
 

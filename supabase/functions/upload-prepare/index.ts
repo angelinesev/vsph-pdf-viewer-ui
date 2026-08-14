@@ -1,9 +1,18 @@
 import { handleOptions, jsonResponse } from "../_shared/cors.ts";
-import { getServiceClient, parseViewType, safeFilename, yearMonth } from "../_shared/supabase.ts";
+import { getServiceClient, parseViewType, safeFilename, planBrochureLimit, planStorageLimit } from "../_shared/supabase.ts";
 import { requireDeveloper } from "../_shared/auth.ts";
 
 const BUCKET = Deno.env.get("SUPABASE_STORAGE_BUCKET") || "pdfs";
-const SIGNED_TTL = 3600;
+
+async function getOrgUsage(supabase: ReturnType<typeof getServiceClient>, orgId: string) {
+  const { data, error, count } = await supabase
+    .from("brochures")
+    .select("size_bytes", { count: "exact" })
+    .eq("org_id", orgId);
+  if (error) throw error;
+  const storageUsed = (data || []).reduce((sum, row) => sum + Number(row.size_bytes || 0), 0);
+  return { active: count || 0, storageUsed };
+}
 
 Deno.serve(async (req) => {
   const opt = handleOptions(req);
@@ -27,7 +36,7 @@ Deno.serve(async (req) => {
 
   const { data: plan, error: planError } = await supabase
     .from("plans")
-    .select("id, monthly_brochure_limit, max_file_bytes")
+    .select("id, monthly_brochure_limit, max_file_bytes, max_storage_bytes, features")
     .eq("id", auth.org!.plan_id)
     .single();
   if (planError) return jsonResponse(500, { error: planError.message });
@@ -39,21 +48,27 @@ Deno.serve(async (req) => {
     });
   }
 
-  const ym = yearMonth();
-  const { data: usage } = await supabase
-    .from("usage_monthly")
-    .select("brochure_count")
-    .eq("org_id", auth.org!.id)
-    .eq("year_month", ym)
-    .maybeSingle();
+  let usage: { active: number; storageUsed: number };
+  try {
+    usage = await getOrgUsage(supabase, auth.org!.id);
+  } catch (err) {
+    return jsonResponse(500, { error: (err as Error).message });
+  }
 
-  const used = usage?.brochure_count || 0;
-  if (used >= plan.monthly_brochure_limit) {
+  if (planBrochureLimit(plan) != null && usage.active >= planBrochureLimit(plan)!) {
     return jsonResponse(402, {
-      error: "Monthly brochure quota exceeded",
-      used,
-      limit: plan.monthly_brochure_limit,
-      year_month: ym,
+      error: "Active brochure quota exceeded",
+      used: usage.active,
+      limit: planBrochureLimit(plan),
+    });
+  }
+
+  const storageLimit = planStorageLimit(plan);
+  if (storageLimit != null && usage.storageUsed + sizeBytes > storageLimit) {
+    return jsonResponse(402, {
+      error: "Storage quota exceeded",
+      used: usage.storageUsed,
+      limit: plan.max_storage_bytes,
     });
   }
 
@@ -75,6 +90,11 @@ Deno.serve(async (req) => {
       path: uploadData.path,
       token: uploadData.token,
     },
-    quota: { used, limit: plan.monthly_brochure_limit, year_month: ym },
+    quota: {
+      used: usage.active,
+      limit: planBrochureLimit(plan),
+      storage_used: usage.storageUsed,
+      max_storage_bytes: planStorageLimit(plan),
+    },
   });
 });

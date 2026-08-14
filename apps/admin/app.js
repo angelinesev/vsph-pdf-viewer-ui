@@ -23,13 +23,53 @@
     return window.saasApi.call(path, { ...opts, adminJwt: jwt });
   }
 
+  function formatBytes(n) {
+    if (n == null) return "Custom";
+    const mb = n / (1024 * 1024);
+    if (mb >= 1024) return (mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1) + " GB";
+    return (mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)) + " MB";
+  }
+
+  function brochureLimitLabel(p) {
+    if (p && typeof p === "object") {
+      if (p.features?.unlimited_brochures || p.monthly_brochure_limit == null) return "Unlimited";
+      return String(p.monthly_brochure_limit);
+    }
+    return p == null ? "Unlimited" : String(p);
+  }
+
+  function storageLimitOf(p) {
+    if (!p) return null;
+    if (p.max_storage_bytes != null) return p.max_storage_bytes;
+    if (p.features?.unlimited_storage) return null;
+    if (p.features?.max_storage_bytes != null) return Number(p.features.max_storage_bytes);
+    return null;
+  }
+
+  function featureLine(p) {
+    const f = p.features || {};
+    const bits = [];
+    if (f.analytics) bits.push(f.analytics + " analytics");
+    if (f.branding === "your_branding") bits.push("your branding");
+    else if (f.branding === "custom") bits.push("custom branding");
+    else if (f.branding === "white_label") bits.push("white-label");
+    if (f.support) bits.push(f.support + " support");
+    if (f.custom_domain === true) bits.push("custom domain");
+    else if (f.custom_domain === "optional") bits.push("optional custom domain");
+    if (f.api_access) bits.push("API access");
+    return bits.join(" · ");
+  }
+
+  function planSummary(p) {
+    const fileMb = (Number(p.max_file_bytes || 0) / (1024 * 1024)).toFixed(0);
+    return `<div><strong>${p.name}</strong> — ${brochureLimitLabel(p)} brochures · ${fileMb} MB files · ${formatBytes(storageLimitOf(p))} storage${featureLine(p) ? `<div class="muted">${featureLine(p)}</div>` : ""}</div>`;
+  }
+
   async function refresh() {
     adminError.textContent = "";
     const planRes = await api("admin-plans");
     plans = planRes.plans || [];
-    document.getElementById("plansList").innerHTML = plans
-      .map((p) => `<div><strong>${p.name}</strong> — ${p.monthly_brochure_limit}/mo · ${(p.max_file_bytes / (1024 * 1024)).toFixed(0)} MB</div>`)
-      .join("") || "No plans";
+    document.getElementById("plansList").innerHTML = plans.map(planSummary).join("") || "No plans";
 
     const orgSelects = [document.getElementById("orgPlan"), document.getElementById("codeOrg")];
     orgSelects[0].innerHTML = plans.map((p) => `<option value="${p.id}">${p.name}</option>`).join("");
@@ -42,9 +82,12 @@
     tbody.innerHTML = "";
     orgs.forEach((o) => {
       const planName = o.plans?.name || o.plan_id;
-      const limit = o.plans?.monthly_brochure_limit ?? "?";
+      const limit = brochureLimitLabel(o.plans || {});
+      const active = o.active_brochures ?? o.usage_this_month ?? 0;
+      const storage = formatBytes(o.storage_used_bytes || 0);
+      const storageCap = formatBytes(storageLimitOf(o.plans));
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${o.name}<div class="muted">${o.slug}</div></td><td>${planName}</td><td>${o.usage_this_month} / ${limit}</td><td>${o.status}</td><td><button class="secondary" data-load="${o.id}" type="button">Codes</button></td>`;
+      tr.innerHTML = `<td>${o.name}<div class="muted">${o.slug}</div></td><td>${planName}</td><td>${active} / ${limit}</td><td>${storage} / ${storageCap}</td><td>${o.status}</td><td><button class="secondary" data-load="${o.id}" type="button">Code</button></td>`;
       tbody.appendChild(tr);
     });
     tbody.querySelectorAll("button[data-load]").forEach((btn) => {
@@ -125,12 +168,15 @@
 
   document.getElementById("createPlanBtn").addEventListener("click", async () => {
     try {
+      const limitVal = document.getElementById("planLimit").value;
+      const storageVal = document.getElementById("planStorageMb").value;
       await api("admin-plans", {
         method: "POST",
         body: {
           name: document.getElementById("planName").value,
-          monthly_brochure_limit: Number(document.getElementById("planLimit").value),
+          monthly_brochure_limit: limitVal === "" ? null : Number(limitVal),
           max_file_bytes: Number(document.getElementById("planMb").value) * 1024 * 1024,
+          max_storage_bytes: storageVal === "" ? null : Number(storageVal) * 1024 * 1024,
         },
       });
       await refresh();

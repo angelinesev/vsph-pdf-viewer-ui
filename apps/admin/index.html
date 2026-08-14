@@ -44,12 +44,16 @@
               <input id="planName" placeholder="Enterprise" />
             </div>
             <div>
-              <label>Monthly limit</label>
-              <input id="planLimit" type="number" value="250" />
+              <label>Active brochures</label>
+              <input id="planLimit" type="number" min="0" placeholder="blank = unlimited" />
             </div>
             <div>
-              <label>Max MB</label>
+              <label>Max file MB</label>
               <input id="planMb" type="number" value="50" />
+            </div>
+            <div>
+              <label>Storage MB</label>
+              <input id="planStorageMb" type="number" min="0" placeholder="blank = custom" />
             </div>
           </div>
           <button id="createPlanBtn" type="button">Create plan</button>
@@ -70,14 +74,15 @@
           <button id="createOrgBtn" type="button">Create organization</button>
           <table style="margin-top:1rem">
             <thead>
-              <tr><th>Org</th><th>Plan</th><th>Usage</th><th>Status</th><th></th></tr>
+              <tr><th>Org</th><th>Plan</th><th>Brochures</th><th>Storage</th><th>Status</th><th></th></tr>
             </thead>
             <tbody id="orgRows"></tbody>
           </table>
         </div>
 
         <div class="panel">
-          <h2 style="margin:0 0 0.75rem;font-size:1.1rem">Developer codes</h2>
+          <h2 style="margin:0 0 0.75rem;font-size:1.1rem">Access code</h2>
+          <p class="muted">One login per organization. Revoke the current code before creating a new one.</p>
           <div class="row">
             <div>
               <label>Organization</label>
@@ -92,7 +97,7 @@
               <input id="devPassword" type="password" />
             </div>
           </div>
-          <button id="createCodeBtn" type="button">Create developer code</button>
+          <button id="createCodeBtn" type="button">Create access code</button>
           <p id="codesMsg" class="muted"></p>
           <table style="margin-top:1rem">
             <thead><tr><th>Code</th><th>Active</th><th>Created</th><th></th></tr></thead>

@@ -24,14 +24,27 @@
     logoutBtn.classList.toggle("hidden", !show);
   }
 
+  function formatBytes(n) {
+    if (n == null) return "Custom";
+    const mb = n / (1024 * 1024);
+    if (mb >= 1024) return (mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1) + " GB";
+    return (mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)) + " MB";
+  }
+
   async function refreshQuotaAndList() {
     const quota = await window.saasApi.call("quota-status", { token });
     document.getElementById("orgName").textContent = quota.organization.name;
-    document.getElementById("planLine").textContent = `Plan: ${quota.plan.name} · max ${(quota.max_file_bytes / (1024 * 1024)).toFixed(0)} MB`;
+    document.getElementById("planLine").textContent = `Plan: ${quota.plan.name} · max ${(quota.max_file_bytes / (1024 * 1024)).toFixed(0)} MB files`;
     document.getElementById("quotaUsed").textContent = String(quota.used);
-    document.getElementById("quotaLimit").textContent = String(quota.limit);
+    document.getElementById("quotaLimit").textContent = quota.limit == null ? "Unlimited" : String(quota.limit);
     const pct = quota.limit ? Math.min(100, Math.round((quota.used / quota.limit) * 100)) : 0;
     document.getElementById("quotaBar").style.width = pct + "%";
+    const storageLine = document.getElementById("storageLine");
+    if (quota.max_storage_bytes == null) {
+      storageLine.textContent = `Storage: ${formatBytes(quota.storage_used)} used (custom limit)`;
+    } else {
+      storageLine.textContent = `Storage: ${formatBytes(quota.storage_used)} / ${formatBytes(quota.max_storage_bytes)}`;
+    }
 
     const list = await window.saasApi.call("brochures-list", { token });
     const tbody = document.getElementById("brochureRows");

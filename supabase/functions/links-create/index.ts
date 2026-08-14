@@ -33,7 +33,12 @@ Deno.serve(async (req) => {
 
   const viewType = parseViewType(body.view_type || brochure.view_type);
   const token = randomToken(24);
-  const baseUrl = (Deno.env.get("PUBLIC_BASE_URL") || Deno.env.get("BASE_URL") || "").replace(/\/$/, "");
+  const baseUrl = (
+    Deno.env.get("PUBLIC_BASE_URL")
+    || Deno.env.get("BASE_URL")
+    || Deno.env.get("URL")
+    || ""
+  ).replace(/\/$/, "");
 
   const { data: link, error: linkError } = await supabase
     .from("brochure_links")

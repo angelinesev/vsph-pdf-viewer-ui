@@ -281,7 +281,7 @@ async function prepareDocumentUpload({ filename, view_type: viewTypeInput, size_
 
   const size = Number(sizeBytes);
   if (Number.isFinite(size) && size > MAX_UPLOAD_BYTES) {
-    return { status: 413, body: { error: 'File too large (max 50 MB)' } };
+    return { status: 413, body: { error: 'File too large (max 75 MB)' } };
   }
 
   const supabase = getSupabase();
