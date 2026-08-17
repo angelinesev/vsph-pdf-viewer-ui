@@ -22,6 +22,29 @@
     logoutBtn.classList.toggle("hidden", !show);
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function countryLabel(entry) {
+    if (!entry) return "Unknown";
+    if (typeof entry === "object" && entry.country_name && entry.country_name !== "Unknown") {
+      return entry.country_name;
+    }
+    const code = typeof entry === "object" ? entry.country : entry;
+    if (!code || code === "XX") return "Unknown";
+    try {
+      return new Intl.DisplayNames(["en"], { type: "region" }).of(code) || code;
+    } catch {
+      return code;
+    }
+  }
+
+  function formatCountryStat(entry) {
+    if (!entry) return "—";
+    return `${countryLabel(entry)} (${entry.count})`;
+  }
+
   async function api(path, opts = {}) {
     return window.saasApi.call(path, { ...opts, adminJwt: jwt });
   }
@@ -62,10 +85,6 @@
         <p class="muted" style="margin:0.75rem 0 0">Single plan for all organizations.</p>
       </div>
     `;
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
   function statusLabel(status) {
@@ -172,7 +191,7 @@
         rows.forEach((row) => {
           const name = row.organization?.name || row.org_id;
           const slug = row.organization?.slug || "";
-          const top = (row.countries && row.countries[0]) ? `${row.countries[0].country} (${row.countries[0].count})` : "—";
+          const top = formatCountryStat(row.countries && row.countries[0]);
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td><strong>${escapeHtml(name)}</strong><div class="muted">${escapeHtml(slug)}</div></td>
@@ -220,7 +239,7 @@
         if (r.project_name) extras.push(r.project_name);
         if (r.filename && r.filename !== title) extras.push(r.filename);
         const sub = extras.length ? `<div class="muted">${escapeHtml(extras.join(" · "))}</div>` : "";
-        const top = (r.countries && r.countries[0]) ? `${r.countries[0].country} (${r.countries[0].count})` : "—";
+        const top = formatCountryStat(r.countries && r.countries[0]);
         return `<tr><td><strong>${escapeHtml(title)}</strong>${sub}</td><td>${r.total || 0}</td><td>${r.unique_visitors || 0}</td><td>${escapeHtml(top)}</td></tr>`;
       }).join("")
       : '<tr><td colspan="4" class="muted">No brochures in this organization</td></tr>';
@@ -228,7 +247,7 @@
 
   function topCountryLabel(row) {
     if (row.countries && row.countries[0]) {
-      return `${row.countries[0].country} (${row.countries[0].count})`;
+      return formatCountryStat(row.countries[0]);
     }
     return "—";
   }
@@ -251,7 +270,7 @@
     const name = org.name || "Organization";
     const rows = detail.by_brochure || [];
     const topCountries = (detail.countries || []).slice(0, 5)
-      .map((c) => `${c.country} (${c.count})`)
+      .map((c) => formatCountryStat(c))
       .join(", ") || "—";
     const generated = new Date().toLocaleString();
     const fileTitle = `vsph-analytics-${slug}-30d`;

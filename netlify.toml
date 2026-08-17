@@ -2,6 +2,7 @@
   command = "node scripts/write-portal-config.js && npm install"
   publish = "."
   functions = "netlify/functions"
+  edge_functions = "netlify/edge-functions"
 
 [functions]
   node_bundler = "esbuild"

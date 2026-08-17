@@ -49,6 +49,20 @@
     return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
+  function countryLabel(entry) {
+    if (!entry) return "Unknown";
+    if (typeof entry === "object" && entry.country_name && entry.country_name !== "Unknown") {
+      return entry.country_name;
+    }
+    const code = typeof entry === "object" ? entry.country : entry;
+    if (!code || code === "XX") return "Unknown";
+    try {
+      return new Intl.DisplayNames(["en"], { type: "region" }).of(code) || code;
+    } catch {
+      return code;
+    }
+  }
+
   async function api(path, opts = {}) {
     return window.saasApi.call(path, { ...opts, token });
   }
@@ -204,7 +218,7 @@
       const tbody = document.getElementById("countryRows");
       const countries = data.countries || [];
       tbody.innerHTML = countries.length
-        ? countries.map((c) => `<tr><td>${escapeHtml(c.country)}</td><td>${c.count}</td></tr>`).join("")
+        ? countries.map((c) => `<tr><td>${escapeHtml(countryLabel(c))}</td><td>${c.count}</td></tr>`).join("")
         : '<tr><td colspan="2" class="muted">No opens yet</td></tr>';
     } catch (err) {
       uploadError.textContent = err.message;

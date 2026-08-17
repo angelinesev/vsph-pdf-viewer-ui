@@ -801,6 +801,7 @@ async function linksCreate(reqLike, body) {
 }
 
 function summarizeEvents(events) {
+  const { countryDisplayName } = require('./geoip');
   const total = events.length;
   const uniques = new Set(events.map((e) => e.visitor_day_hash).filter(Boolean)).size;
   const byCountry = {};
@@ -809,7 +810,11 @@ function summarizeEvents(events) {
     byCountry[c] = (byCountry[c] || 0) + 1;
   });
   const countries = Object.entries(byCountry)
-    .map(([country, count]) => ({ country, count }))
+    .map(([country, count]) => ({
+      country,
+      country_name: countryDisplayName(country),
+      count,
+    }))
     .sort((a, b) => b.count - a.count);
   return { total, unique_visitors: uniques, countries };
 }

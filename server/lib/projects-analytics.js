@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { getSupabase } = require('./supabase');
 const { VIEWER_PATH, getBaseUrl } = require('./constants');
+const { countryFromHeaders, resolveCountry } = require('./geoip');
 
 const RESERVED_ORG_SLUGS = new Set([
   'api',
@@ -24,21 +25,6 @@ function slugify(input, fallback = 'item') {
     .replace(/^-+|-+$/g, '')
     .slice(0, 48);
   return base || fallback;
-}
-
-function countryFromHeaders(headers = {}) {
-  const h = {};
-  for (const [k, v] of Object.entries(headers)) {
-    h[String(k).toLowerCase()] = v;
-  }
-  const raw =
-    h['x-country']
-    || h['cf-ipcountry']
-    || h['x-nf-country-code']
-    || h['x-vercel-ip-country']
-    || 'XX';
-  const code = String(raw).toUpperCase().slice(0, 2);
-  return /^[A-Z]{2}$/.test(code) ? code : 'XX';
 }
 
 function visitorDayHash(headers = {}, cookieHeader) {
@@ -166,7 +152,7 @@ async function logViewEvent({
   cookieHeader,
 }) {
   const supabase = getSupabase();
-  const country = countryFromHeaders(headers);
+  const country = await resolveCountry(headers);
   const { hash, vid, setCookie } = visitorDayHash(headers, cookieHeader);
   const { error } = await supabase.from('view_events').insert({
     org_id: orgId || null,
