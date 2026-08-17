@@ -159,10 +159,12 @@ app.get('/:org/:project/:brochure?', requireSupabase, async (req, res, next) => 
 
 app.get('/admin', (_req, res) => res.redirect('/apps/admin/'));
 app.get('/admin/', (_req, res) => res.redirect('/apps/admin/'));
-app.get('/developer', (_req, res) => res.redirect('/apps/developer/'));
-app.get('/developer/', (_req, res) => res.redirect('/apps/developer/'));
-app.get('/create', (_req, res) => res.redirect('/apps/developer/'));
-app.get('/create/', (_req, res) => res.redirect('/apps/developer/'));
+app.get('/developer', (_req, res) => res.redirect('/'));
+app.get('/developer/', (_req, res) => res.redirect('/'));
+app.get('/create', (_req, res) => res.redirect('/'));
+app.get('/create/', (_req, res) => res.redirect('/'));
+app.get('/apps/developer', (_req, res) => res.redirect('/'));
+app.get('/apps/developer/', (_req, res) => res.redirect('/'));
 
 app.all('/api/saas/:name', requireSupabase, async (req, res) => {
   const { routeSaas } = require('./lib/saas-handlers');

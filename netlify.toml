@@ -56,23 +56,33 @@
   status = 301
 
 [[redirects]]
+  from = "/apps/developer"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/apps/developer/"
+  to = "/"
+  status = 301
+
+[[redirects]]
   from = "/developer"
-  to = "/apps/developer/"
+  to = "/"
   status = 301
 
 [[redirects]]
   from = "/developer/"
-  to = "/apps/developer/"
+  to = "/"
   status = 301
 
 [[redirects]]
   from = "/create"
-  to = "/apps/developer/"
+  to = "/"
   status = 301
 
 [[redirects]]
   from = "/create/"
-  to = "/apps/developer/"
+  to = "/"
   status = 301
 
 # Keep static trees ahead of vanity catch-alls (files win unless force=true).

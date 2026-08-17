@@ -17,12 +17,12 @@ VSPH PDF Viewer lets Virtual Studios host property and estate PDFs as interactiv
 ## How it typically works
 
 1. Admin creates an organization and an access code.
-2. The client signs in at the [client portal](https://vsph-pdfviewer.netlify.app/apps/developer/) and creates a project (for example, Miravera).
+2. The client signs in at the [client portal](https://vsph-pdfviewer.netlify.app/) and creates a project (for example, Miravera).
 3. They upload a PDF as a **brochure** (page-flip) or a **flyer** (trifold).
 4. They copy a readable URL, a backup token link, or an embed snippet for a website.
 5. The buyer opens it. The browser tab shows the brochure title, not a raw storage address.
 
-The [admin portal](https://vsph-pdfviewer.netlify.app/apps/admin/) is where VSPH staff manage organizations and see platform analytics.
+The [admin portal](https://vsph-pdfviewer.netlify.app/admin/) is where VSPH staff manage organizations and see platform analytics.
 
 ## Features
 

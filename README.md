@@ -9,7 +9,7 @@ Live site: [https://vsph-pdfviewer.netlify.app](https://vsph-pdfviewer.netlify.a
 ## Architecture
 
 - **Admin portal** (`/admin/`) — Supabase Auth + `platform_admins`
-- **Developer portal** (`/developer/`) — developer code + password → org session
+- **Developer portal** (`/`) — developer code + password → org session
 - **SaaS API** — same-origin `/api/saas/*` on Netlify Functions / Express
 - **Postgres** — `plans`, `organizations`, `developer_codes`, `brochures`, `brochure_links`, `usage_monthly`
 - **Storage** — private `pdfs` bucket, org-prefixed paths, signed URLs
@@ -37,8 +37,7 @@ npm start
 
 | URL | Purpose |
 |-----|---------|
-| http://localhost:3000/ | Home |
-| http://localhost:3000/developer/ | Developer portal |
+| http://localhost:3000/ | Client portal |
 | http://localhost:3000/admin/ | Admin portal |
 | http://localhost:3000/view/{token} | Public flipbook |
 
@@ -67,7 +66,7 @@ It sets `functionsBase: "/api/saas"` (same origin).
 
 ## Developer flow
 
-1. Sign in at `/developer/` with code + password.
+1. Sign in at `/` with code + password.
 2. Upload a PDF (brochure or flyer) — blocked when monthly quota is exceeded.
 3. Copy the share link; open `/view/{token}`.
 
