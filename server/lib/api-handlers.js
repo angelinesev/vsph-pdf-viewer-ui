@@ -409,6 +409,36 @@ async function createAccessLink({
   }
 }
 
+function joinedOrgStatus(row) {
+  const org = row?.organizations;
+  if (!org) return null;
+  return Array.isArray(org) ? (org[0]?.status || null) : (org.status || null);
+}
+
+async function assertBrochureOrgActive(supabase, documentId) {
+  if (!documentId) return { brochure: null };
+  const { data } = await supabase
+    .from('brochures')
+    .select('id, org_id, project_id, title, filename, organizations(status)')
+    .eq('id', documentId)
+    .maybeSingle();
+  if (!data) return { brochure: null };
+
+  let status = joinedOrgStatus(data);
+  if (!status && data.org_id) {
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('status')
+      .eq('id', data.org_id)
+      .maybeSingle();
+    status = org?.status || null;
+  }
+  if (status && status !== 'active') {
+    return { error: { status: 410, body: { error: 'Link unavailable' } } };
+  }
+  return { brochure: data };
+}
+
 async function resolvePdfAccess(token) {
   if (!isSupabaseConfigured()) {
     return { error: notConfigured() };
@@ -433,6 +463,9 @@ async function resolvePdfAccess(token) {
     return { error: { status: 410, body: { error: 'Link expired' } } };
   }
 
+  const orgGate = await assertBrochureOrgActive(supabase, link.document_id);
+  if (orgGate.error) return { error: orgGate.error };
+
   const { doc, docError } = await getDocumentStoragePath(supabase, link.document_id, link);
 
   if (docError) {
@@ -443,7 +476,7 @@ async function resolvePdfAccess(token) {
     return { error: { status: 404, body: { error: 'Document not found' } } };
   }
 
-  return { supabase, doc, link };
+  return { supabase, doc, link, brochure: orgGate.brochure };
 }
 
 async function getPdfSignedUrlForToken(token) {
@@ -500,52 +533,49 @@ async function getPdfRedirectForToken(token) {
   return getPdfResponseForToken(token);
 }
 
-async function getViewRedirect(token, queryView) {
-  if (!isSupabaseConfigured()) {
-    return { status: 503, body: 'Supabase not configured', contentType: 'text/plain' };
+async function getViewRedirect(token, queryView, headers = {}) {
+  const resolved = await resolvePdfAccess(token);
+  if (resolved.error) {
+    const err = resolved.error;
+    const message = err.body?.error || err.body || 'Link unavailable';
+    return { status: err.status || 410, body: String(message), contentType: 'text/plain' };
   }
 
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { status: 503, body: 'Supabase not configured', contentType: 'text/plain' };
-  }
-
-  const { link, linkError } = await lookupAccessLink(supabase, token);
-
-  if (linkError) {
-    const formatted = formatSupabaseError(linkError);
-    return { status: formatted.status, body: formatted.body.error, contentType: 'text/plain' };
-  }
-
-  if (!link) {
-    return { status: 404, body: 'Link not found', contentType: 'text/plain' };
-  }
-
-  if (isLinkExpired(link.expires_at)) {
-    return { status: 410, body: 'Link expired', contentType: 'text/plain' };
-  }
-
-  const { doc, docError } = await getDocumentStoragePath(supabase, link.document_id, link);
-
-  if (docError) {
-    const formatted = formatSupabaseError(docError);
-    return { status: formatted.status, body: formatted.body.error, contentType: 'text/plain' };
-  }
-
-  if (!doc) {
-    return { status: 404, body: 'Document not found', contentType: 'text/plain' };
-  }
+  const { link, brochure } = resolved;
 
   // Keep the redirect URL short. Embedding a full Supabase signed URL in
   // ?file= can exceed CDN/proxy limits and produce a Netlify 404 page.
   // resolve-pdf-file.js turns /api/pdf/:token into a signed URL in the browser.
   const viewType = parseViewType(queryView || link.view_type);
   const fileParam = encodeURIComponent(`/api/pdf/${token}`);
-  const location = `${VIEWER_PATH}?file=${fileParam}&client=1&view=${viewType}`;
+  const publicPath = encodeURIComponent(`/view/${token}`);
+  const docTitle = encodeURIComponent(String(brochure?.title || brochure?.filename || '').slice(0, 200));
+  const location = `${VIEWER_PATH}?file=${fileParam}&client=1&view=${viewType}&public=${publicPath}&title=${docTitle}`;
+
+  let cookieHeader = null;
+  try {
+    const { logViewEvent } = require('./projects-analytics');
+    const logged = await logViewEvent({
+      orgId: brochure?.org_id || null,
+      projectId: brochure?.project_id || null,
+      brochureId: link.document_id,
+      linkToken: token,
+      headers,
+    });
+    if (logged.setCookie) {
+      const { visitorCookie } = require('./security');
+      cookieHeader = visitorCookie(logged.vid);
+    }
+  } catch (err) {
+    console.warn('view event log skipped:', err.message);
+  }
+
+  const responseHeaders = { Location: location };
+  if (cookieHeader) responseHeaders['Set-Cookie'] = cookieHeader;
 
   return {
     status: 302,
-    headers: { Location: location },
+    headers: responseHeaders,
     body: '',
   };
 }

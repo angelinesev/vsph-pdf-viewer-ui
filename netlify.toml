@@ -73,3 +73,28 @@
   from = "/create/"
   to = "/apps/developer/"
   status = 301
+
+# Keep static trees ahead of vanity catch-alls (files win unless force=true).
+# Reserved prefixes are also blocked inside the vanity function.
+[[redirects]]
+  from = "/external/*"
+  to = "/external/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/pdf-turn/*"
+  to = "/pdf-turn/:splat"
+  status = 200
+
+# Public vanity share links: /{org}/{project} and /{org}/{project}/{brochure}
+# Placed after /api, /view, /admin, /developer, /external, /pdf-turn rules
+[[redirects]]
+  from = "/:org/:project/:brochure"
+  to = "/.netlify/functions/vanity"
+  status = 200
+
+[[redirects]]
+  from = "/:org/:project"
+  to = "/.netlify/functions/vanity"
+  status = 200
+

@@ -2,16 +2,24 @@
   const TOKEN_KEY = "brochure_dev_token";
   let token = localStorage.getItem(TOKEN_KEY) || "";
   let selectedFile = null;
+  let projects = [];
+  let currentProject = null;
 
   const loginPanel = document.getElementById("loginPanel");
   const appPanel = document.getElementById("appPanel");
   const loginError = document.getElementById("loginError");
   const uploadError = document.getElementById("uploadError");
+  const projectError = document.getElementById("projectError");
   const logoutBtn = document.getElementById("logoutBtn");
+  const planBadge = document.getElementById("planBadge");
+  const headerSub = document.getElementById("headerSub");
   const uploadBtn = document.getElementById("uploadBtn");
   const fileInput = document.getElementById("fileInput");
   const dropzone = document.getElementById("dropzone");
   const result = document.getElementById("result");
+  const projectsView = document.getElementById("projectsView");
+  const projectDetailView = document.getElementById("projectDetailView");
+  const analyticsPanel = document.getElementById("analyticsPanel");
 
   function viewType() {
     const el = document.querySelector('input[name="viewType"]:checked');
@@ -22,6 +30,7 @@
     loginPanel.classList.toggle("hidden", show);
     appPanel.classList.toggle("hidden", !show);
     logoutBtn.classList.toggle("hidden", !show);
+    planBadge.classList.toggle("hidden", !show);
   }
 
   function formatBytes(n) {
@@ -31,39 +40,153 @@
     return (mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)) + " MB";
   }
 
-  async function refreshQuotaAndList() {
-    const quota = await window.saasApi.call("quota-status", { token });
-    document.getElementById("orgName").textContent = quota.organization.name;
-    document.getElementById("planLine").textContent = `Plan: ${quota.plan.name} · max ${(quota.max_file_bytes / (1024 * 1024)).toFixed(0)} MB files`;
+  function pct(used, limit) {
+    if (limit == null || limit <= 0) return 0;
+    return Math.min(100, Math.round((used / limit) * 100));
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  async function api(path, opts = {}) {
+    return window.saasApi.call(path, { ...opts, token });
+  }
+
+  function showProjects() {
+    currentProject = null;
+    projectsView.classList.remove("hidden");
+    projectDetailView.classList.add("hidden");
+    analyticsPanel.classList.add("hidden");
+  }
+
+  function openProject(project) {
+    currentProject = project;
+    projectsView.classList.add("hidden");
+    projectDetailView.classList.remove("hidden");
+    document.getElementById("projectTitle").textContent = project.name;
+    document.getElementById("projectSlugLine").textContent = `Folder /${project.slug}`;
+    result.classList.add("hidden");
+    analyticsPanel.classList.add("hidden");
+    refreshBrochures();
+  }
+
+  async function refreshQuota() {
+    const quota = await api("quota-status");
+    headerSub.textContent = quota.organization.name;
+    planBadge.textContent = quota.plan.name;
     document.getElementById("quotaUsed").textContent = String(quota.used);
     document.getElementById("quotaLimit").textContent = quota.limit == null ? "Unlimited" : String(quota.limit);
-    const pct = quota.limit ? Math.min(100, Math.round((quota.used / quota.limit) * 100)) : 0;
-    document.getElementById("quotaBar").style.width = pct + "%";
-    const storageLine = document.getElementById("storageLine");
+    document.getElementById("quotaBar").style.width = pct(quota.used, quota.limit) + "%";
+    document.getElementById("storageValue").textContent = formatBytes(quota.storage_used);
     if (quota.max_storage_bytes == null) {
-      storageLine.textContent = `Storage: ${formatBytes(quota.storage_used)} used (custom limit)`;
+      document.getElementById("storageLine").textContent = "Custom storage limit";
+      document.getElementById("storageBar").style.width = "0%";
     } else {
-      storageLine.textContent = `Storage: ${formatBytes(quota.storage_used)} / ${formatBytes(quota.max_storage_bytes)}`;
+      document.getElementById("storageLine").textContent = `of ${formatBytes(quota.max_storage_bytes)}`;
+      document.getElementById("storageBar").style.width = pct(quota.storage_used, quota.max_storage_bytes) + "%";
     }
+    try {
+      const orgAnalytics = await api("analytics-org");
+      document.getElementById("orgViews").textContent = String(orgAnalytics.total || 0);
+      document.getElementById("orgUniques").textContent = `${orgAnalytics.unique_visitors || 0} unique (approx)`;
+    } catch {
+      document.getElementById("orgViews").textContent = "—";
+      document.getElementById("orgUniques").textContent = "Run analytics migration to enable";
+    }
+  }
 
-    const list = await window.saasApi.call("brochures-list", { token });
-    const tbody = document.getElementById("brochureRows");
-    tbody.innerHTML = "";
-    (list.brochures || []).forEach((b) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escapeHtml(b.filename)}</td><td><span class="badge">${b.view_type}</span></td><td>${new Date(b.created_at).toLocaleString()}</td><td><button data-id="${b.id}" class="secondary linkBtn" type="button">Share</button></td>`;
-      tbody.appendChild(tr);
+  async function refreshProjects() {
+    projectError.textContent = "";
+    const res = await api("projects-list");
+    projects = res.projects || [];
+    const grid = document.getElementById("projectsGrid");
+    if (!projects.length) {
+      grid.innerHTML = '<div class="empty-state">No projects yet. Create one for your estate.</div>';
+      return;
+    }
+    grid.innerHTML = projects.map((p) => `
+      <button type="button" class="plan-card" data-project="${p.id}" style="text-align:left;cursor:pointer;width:100%">
+        <h3>${escapeHtml(p.name)}</h3>
+        <div class="plan-price-line">/${escapeHtml(p.slug)}</div>
+        <div class="plan-metrics">
+          <div><span class="muted">Brochures</span><strong>${p.brochure_count || 0}</strong></div>
+          <div><span class="muted">Last upload</span><strong>${p.last_upload_at ? new Date(p.last_upload_at).toLocaleString() : "—"}</strong></div>
+        </div>
+      </button>
+    `).join("");
+    grid.querySelectorAll("[data-project]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const project = projects.find((p) => p.id === btn.getAttribute("data-project"));
+        if (project) openProject(project);
+      });
     });
-    tbody.querySelectorAll(".linkBtn").forEach((btn) => {
+  }
+
+  async function refreshBrochures() {
+    if (!currentProject) return;
+    const list = await api(`brochures-list?project_id=${encodeURIComponent(currentProject.id)}`);
+    const container = document.getElementById("brochureList");
+    const brochures = list.brochures || [];
+    if (!brochures.length) {
+      container.innerHTML = '<div class="empty-state">No brochures yet. Upload your first PDF.</div>';
+      return;
+    }
+    container.innerHTML = "";
+    brochures.forEach((b) => {
+      const item = document.createElement("div");
+      item.className = "brochure-item";
+      item.innerHTML = `
+        <div class="brochure-item-info">
+          <div class="brochure-item-name">${escapeHtml(b.title || b.filename)}</div>
+          <div class="brochure-item-meta">
+            <span class="badge">${escapeHtml(b.view_type)}</span>
+            &nbsp;${new Date(b.created_at).toLocaleString()}
+          </div>
+        </div>
+        <div style="display:flex;gap:0.35rem;flex-shrink:0">
+          <button data-share="${b.id}" class="secondary inline" type="button">Share</button>
+          <button data-stats="${b.id}" data-title="${escapeHtml(b.title || b.filename)}" class="secondary inline" type="button">Stats</button>
+          <button data-delete="${b.id}" data-title="${escapeHtml(b.title || b.filename)}" class="danger inline" type="button">Delete</button>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+    container.querySelectorAll("[data-share]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         uploadError.textContent = "";
         try {
-          const link = await window.saasApi.call("links-create", {
+          const link = await api("links-create", {
             method: "POST",
-            token,
-            body: { brochure_id: btn.getAttribute("data-id") },
+            body: { brochure_id: btn.getAttribute("data-share") },
           });
-          showShare(link.url);
+          showShare(link.vanity_url || link.url, link.token_url || link.url);
+        } catch (err) {
+          uploadError.textContent = err.message;
+        }
+      });
+    });
+    container.querySelectorAll("[data-stats]").forEach((btn) => {
+      btn.addEventListener("click", () => openAnalytics(btn.getAttribute("data-stats"), btn.getAttribute("data-title")));
+    });
+    container.querySelectorAll("[data-delete]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const title = btn.getAttribute("data-title") || "this brochure";
+        const ok = window.confirm(
+          `Delete "${title}"?\n\nShare links will stop working and the file will be removed from storage.`,
+        );
+        if (!ok) return;
+        uploadError.textContent = "";
+        try {
+          await api("brochures-delete", {
+            method: "POST",
+            body: { brochure_id: btn.getAttribute("data-delete") },
+          });
+          result.classList.add("hidden");
+          analyticsPanel.classList.add("hidden");
+          await refreshBrochures();
+          await refreshQuota();
+          await refreshProjects();
         } catch (err) {
           uploadError.textContent = err.message;
         }
@@ -71,14 +194,36 @@
     });
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  async function openAnalytics(brochureId, title) {
+    analyticsPanel.classList.remove("hidden");
+    document.getElementById("analyticsTitle").textContent = `Analytics — ${title}`;
+    try {
+      const data = await api(`analytics-brochure?brochure_id=${encodeURIComponent(brochureId)}`);
+      document.getElementById("aTotal").textContent = String(data.total || 0);
+      document.getElementById("aUnique").textContent = String(data.unique_visitors || 0);
+      const tbody = document.getElementById("countryRows");
+      const countries = data.countries || [];
+      tbody.innerHTML = countries.length
+        ? countries.map((c) => `<tr><td>${escapeHtml(c.country)}</td><td>${c.count}</td></tr>`).join("")
+        : '<tr><td colspan="2" class="muted">No opens yet</td></tr>';
+    } catch (err) {
+      uploadError.textContent = err.message;
+    }
   }
 
-  function showShare(url) {
+  function embedSnippet(url) {
+    const src = String(url || "").replace(/"/g, "&quot;");
+    return `<iframe src="${src}" width="100%" height="720" style="border:0;" allowfullscreen loading="lazy" title="Brochure"></iframe>`;
+  }
+
+  function showShare(vanity, tokenUrl) {
     result.classList.remove("hidden");
-    document.getElementById("shareUrl").value = url;
-    document.getElementById("openLink").href = url;
+    const pretty = vanity || tokenUrl;
+    document.getElementById("shareUrl").value = pretty;
+    document.getElementById("tokenUrl").value = tokenUrl || vanity;
+    document.getElementById("embedCode").value = embedSnippet(pretty);
+    document.getElementById("openLink").href = pretty;
+    result.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   function setFile(file) {
@@ -100,7 +245,9 @@
       token = data.token;
       localStorage.setItem(TOKEN_KEY, token);
       showApp(true);
-      await refreshQuotaAndList();
+      showProjects();
+      await refreshQuota();
+      await refreshProjects();
     } catch (err) {
       loginError.textContent = err.message;
     }
@@ -110,6 +257,30 @@
     token = "";
     localStorage.removeItem(TOKEN_KEY);
     showApp(false);
+    headerSub.textContent = "Projects & brochures";
+  });
+
+  document.getElementById("createProjectBtn").addEventListener("click", async () => {
+    projectError.textContent = "";
+    try {
+      await api("projects-create", {
+        method: "POST",
+        body: { name: document.getElementById("projectName").value },
+      });
+      document.getElementById("projectName").value = "";
+      await refreshProjects();
+    } catch (err) {
+      projectError.textContent = err.message;
+    }
+  });
+
+  document.getElementById("backToProjects").addEventListener("click", async () => {
+    showProjects();
+    await refreshProjects();
+  });
+
+  document.getElementById("closeAnalytics").addEventListener("click", () => {
+    analyticsPanel.classList.add("hidden");
   });
 
   dropzone.addEventListener("click", () => fileInput.click());
@@ -128,20 +299,28 @@
     navigator.clipboard.writeText(input.value).catch(() => {});
   });
 
+  document.getElementById("copyEmbedBtn").addEventListener("click", () => {
+    const input = document.getElementById("embedCode");
+    input.select();
+    navigator.clipboard.writeText(input.value).catch(() => {});
+  });
+
   uploadBtn.addEventListener("click", async () => {
     uploadError.textContent = "";
     result.classList.add("hidden");
-    if (!selectedFile) return;
+    if (!selectedFile || !currentProject) return;
     uploadBtn.disabled = true;
     uploadBtn.textContent = "Uploading…";
     try {
-      const prepared = await window.saasApi.call("upload-prepare", {
+      const title = document.getElementById("brochureTitle").value.trim() || selectedFile.name;
+      const prepared = await api("upload-prepare", {
         method: "POST",
-        token,
         body: {
           filename: selectedFile.name,
+          title,
           view_type: viewType(),
           size_bytes: selectedFile.size,
+          project_id: currentProject.id,
         },
       });
       const put = await fetch(prepared.upload.signedUrl, {
@@ -151,26 +330,31 @@
       });
       if (!put.ok) throw new Error(`Storage upload failed (${put.status})`);
 
-      await window.saasApi.call("upload-complete", {
+      await api("upload-complete", {
         method: "POST",
-        token,
         body: {
           brochure_id: prepared.brochure_id,
+          project_id: prepared.project_id,
           storage_path: prepared.storage_path,
           filename: selectedFile.name,
+          title,
+          slug: prepared.slug,
           view_type: prepared.view_type,
           size_bytes: selectedFile.size,
         },
       });
 
-      const link = await window.saasApi.call("links-create", {
+      const link = await api("links-create", {
         method: "POST",
         token,
         body: { brochure_id: prepared.brochure_id, view_type: prepared.view_type },
       });
-      showShare(link.url);
-      await refreshQuotaAndList();
+      showShare(link.vanity_url || link.url, link.token_url || link.url);
+      await refreshQuota();
+      await refreshBrochures();
       setFile(null);
+      fileInput.value = "";
+      document.getElementById("brochureTitle").value = "";
     } catch (err) {
       uploadError.textContent = err.message + (err.data?.limit != null ? ` (${err.data.used}/${err.data.limit})` : "");
     } finally {
@@ -181,7 +365,8 @@
 
   if (token) {
     showApp(true);
-    refreshQuotaAndList().catch((err) => {
+    showProjects();
+    Promise.all([refreshQuota(), refreshProjects()]).catch((err) => {
       loginError.textContent = err.message;
       logoutBtn.click();
     });

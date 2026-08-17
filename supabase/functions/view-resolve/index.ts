@@ -31,18 +31,25 @@ Deno.serve(async (req) => {
   // Prefer new brochure_links; fall back to legacy pdf_access_links
   let storagePath: string | null = null;
   let viewType: "brochure" | "flyer" = parseViewType(queryView);
+  let docTitle = "";
 
   const { data: link } = await supabase
     .from("brochure_links")
-    .select("token, view_type, expires_at, brochures(storage_path, view_type)")
+    .select("token, view_type, expires_at, brochure_id, brochures(storage_path, view_type, org_id, title, filename, organizations(status))")
     .eq("token", token)
     .maybeSingle();
 
   if (link) {
     if (isExpired(link.expires_at)) return textResponse(410, "Link expired");
     const brochure = Array.isArray(link.brochures) ? link.brochures[0] : link.brochures;
+    const orgStatus = brochure?.organizations?.status
+      || (Array.isArray(brochure?.organizations) ? brochure.organizations[0]?.status : null);
+    if (orgStatus && orgStatus !== "active") {
+      return textResponse(410, "Link unavailable");
+    }
     storagePath = brochure?.storage_path || null;
     viewType = parseViewType(queryView || link.view_type || brochure?.view_type);
+    docTitle = String(brochure?.title || brochure?.filename || "").slice(0, 200);
   } else {
     const { data: legacy } = await supabase
       .from("pdf_access_links")
@@ -73,7 +80,9 @@ Deno.serve(async (req) => {
   // Short viewer path: file=/functions/v1/view-resolve?token=...&mode=url resolved client-side
   // Prefer short proxy path for Netlify: /api/pdf/{token}
   const fileParam = encodeURIComponent(`/api/pdf/${token}`);
-  const location = `${VIEWER_PATH}?file=${fileParam}&client=1&view=${viewType}`;
+  const publicPath = encodeURIComponent(`/view/${token}`);
+  const titleParam = encodeURIComponent(docTitle);
+  const location = `${VIEWER_PATH}?file=${fileParam}&client=1&view=${viewType}&public=${publicPath}&title=${titleParam}`;
 
   return new Response(null, {
     status: 302,

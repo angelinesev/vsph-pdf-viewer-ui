@@ -11,5 +11,9 @@ exports.handler = jsonHandler(async (event) => {
   }
 
   const queryView = event.queryStringParameters?.view;
-  return handlers.getViewRedirect(token, queryView);
+  const headers = {};
+  for (const [k, v] of Object.entries(event.headers || {})) {
+    headers[String(k).toLowerCase()] = v;
+  }
+  return handlers.getViewRedirect(token, queryView, headers);
 });

@@ -878,7 +878,7 @@ var PDFViewerApplication = {
       return;
     }
 
-    document.title = title;
+    document.title = window.__VSPH_DOC_TITLE__ || title;
   },
   close: function () {
     var _close = _asyncToGenerator(
@@ -1798,7 +1798,7 @@ function webViewerInitialized() {
   var file;
   var queryString = document.location.search.substring(1);
   var params = (0, _ui_utils.parseQueryString)(queryString);
-  file = 'file' in params ? params.file : _app_options.AppOptions.get('defaultUrl');
+  file = window.__VSPH_PDF_URL__ || ('file' in params ? params.file : _app_options.AppOptions.get('defaultUrl'));
   validateFileURL(file);
   var fileInput = document.createElement('input');
   fileInput.id = appConfig.openFileInputName;

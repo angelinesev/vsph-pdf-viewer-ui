@@ -97,12 +97,64 @@ app.get('/api/pdf/:token', requireSupabase, async (req, res) => {
 });
 
 app.get('/view/:token', requireSupabase, async (req, res) => {
-  const result = await getViewRedirect(req.params.token, req.query.view);
+  const result = await getViewRedirect(req.params.token, req.query.view, req.headers);
   if (result.status === 302) {
+    if (result.headers) {
+      for (const [key, value] of Object.entries(result.headers)) {
+        res.setHeader(key, value);
+      }
+    }
     res.redirect(result.status, result.headers.Location);
     return;
   }
   sendHandlerResult(res, result);
+});
+
+app.get('/:org/:project/:brochure?', requireSupabase, async (req, res, next) => {
+  const reserved = new Set(['api', 'apps', 'admin', 'developer', 'create', 'view', 'external', 'pdf-turn']);
+  if (reserved.has(String(req.params.org).toLowerCase())) {
+    next();
+    return;
+  }
+  try {
+    const {
+      resolveVanityPath,
+      logViewEvent,
+      getOrCreateShareToken,
+      hubHtml,
+      VIEWER_PATH,
+    } = require('./lib/projects-analytics');
+    const { parseViewType } = require('./lib/constants');
+    const resolved = await resolveVanityPath(req.params.org, req.params.project, req.params.brochure);
+    if (resolved.status !== 200) {
+      res.status(resolved.status).json(resolved.body);
+      return;
+    }
+    if (resolved.kind === 'hub') {
+      res.type('html').send(hubHtml(resolved.body));
+      return;
+    }
+    const supabase = getSupabase();
+    const link = await getOrCreateShareToken(supabase, resolved.brochure);
+    const viewType = parseViewType(req.query.view || link.view_type || resolved.brochure.view_type);
+    const logged = await logViewEvent({
+      orgId: resolved.org.id,
+      projectId: resolved.project.id,
+      brochureId: resolved.brochure.id,
+      linkToken: link.token,
+      headers: req.headers,
+    });
+    if (logged.setCookie) {
+      const { visitorCookie } = require('./lib/security');
+      res.setHeader('Set-Cookie', visitorCookie(logged.vid));
+    }
+    const fileParam = encodeURIComponent(`/api/pdf/${link.token}`);
+    const publicPath = encodeURIComponent(`/${req.params.org}/${req.params.project}/${req.params.brochure}`);
+    const docTitle = encodeURIComponent(String(resolved.brochure.title || resolved.brochure.filename || '').slice(0, 200));
+    res.redirect(302, `${VIEWER_PATH}?file=${fileParam}&client=1&view=${viewType}&public=${publicPath}&title=${docTitle}`);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/admin', (_req, res) => res.redirect('/apps/admin/'));

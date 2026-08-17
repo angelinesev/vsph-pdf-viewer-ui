@@ -1,11 +1,6 @@
 const { jsonHandler, parseJsonBody, toNetlify } = require('./_shared');
 const { routeSaas } = require('../../server/lib/saas-handlers');
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-developer-token',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-};
+const { corsHeaders } = require('../../server/lib/security');
 
 function routeName(event) {
   const splat = event.pathParameters?.splat || '';
@@ -15,6 +10,9 @@ function routeName(event) {
 }
 
 exports.handler = async (event) => {
+  const requestOrigin = event.headers?.origin || event.headers?.Origin || '';
+  const CORS = corsHeaders(requestOrigin);
+
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: CORS, body: '' };
   }
@@ -25,7 +23,11 @@ exports.handler = async (event) => {
       ? {}
       : (parseJsonBody(event) || {});
     if (body === null) {
-      return toNetlify({ status: 400, body: { error: 'Invalid JSON body' } });
+      return {
+        statusCode: 400,
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Invalid JSON body' }),
+      };
     }
 
     const headers = {};
@@ -45,10 +47,11 @@ exports.handler = async (event) => {
     netlify.headers = { ...CORS, ...netlify.headers };
     return netlify;
   } catch (err) {
+    console.warn('[saas]', err?.message || err);
     return {
       statusCode: 500,
       headers: { ...CORS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: err.message || 'Internal server error' }),
+      body: JSON.stringify({ error: 'Internal server error' }),
     };
   }
 };

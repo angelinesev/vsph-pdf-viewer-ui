@@ -3,78 +3,154 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Developer Portal — Brochure SaaS</title>
+    <title>Client Portal — VSPH PDF Viewer</title>
     <link rel="stylesheet" href="../shared/portal.css" />
   </head>
   <body>
     <div class="wrap">
-      <div class="nav">
-        <div>
-          <h1>Developer Portal</h1>
-          <p class="lead">Sign in with your developer code to upload brochures and flyers.</p>
+      <header class="topbar" id="topbar">
+        <div class="brand">
+          <div class="brand-mark">V</div>
+          <div>
+            <p class="brand-title">Client portal</p>
+            <p class="brand-sub" id="headerSub">Projects &amp; brochures</p>
+          </div>
         </div>
-        <button id="logoutBtn" class="secondary hidden" type="button">Sign out</button>
-      </div>
+        <div class="topbar-actions">
+          <span class="badge hidden" id="planBadge">Plan</span>
+          <button id="logoutBtn" class="secondary inline hidden" type="button">Sign out</button>
+        </div>
+      </header>
 
-      <div id="loginPanel" class="panel">
-        <label for="code">Developer code</label>
-        <input id="code" autocomplete="username" placeholder="ORG-CODE" />
-        <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" />
-        <button id="loginBtn" type="button">Sign in</button>
-        <p id="loginError" class="err"></p>
+      <div id="loginPanel" class="login-shell">
+        <div class="login-card">
+          <h1>Client sign in</h1>
+          <p class="lead">Use the access code provided by your admin.</p>
+          <label for="code">Access code</label>
+          <input id="code" autocomplete="username" placeholder="ORG-CODE" />
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" />
+          <button id="loginBtn" type="button">Sign in</button>
+          <p id="loginError" class="err"></p>
+        </div>
       </div>
 
       <div id="appPanel" class="hidden">
-        <div class="panel">
-          <div class="row">
-            <div>
-              <strong id="orgName">Organization</strong>
-              <div class="muted" id="planLine">Plan</div>
-            </div>
-            <div>
-              <div class="muted">Active brochures</div>
-              <div><span id="quotaUsed">0</span> / <span id="quotaLimit">0</span></div>
-              <div class="meter"><span id="quotaBar" style="width:0%"></span></div>
-              <div class="muted" id="storageLine" style="margin-top:0.4rem"></div>
-            </div>
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Active brochures</div>
+            <div class="stat-value"><span id="quotaUsed">0</span> / <span id="quotaLimit">0</span></div>
+            <div class="meter"><span id="quotaBar" style="width:0%"></span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Storage used</div>
+            <div class="stat-value" id="storageValue">—</div>
+            <div class="stat-sub" id="storageLine">—</div>
+            <div class="meter"><span id="storageBar" style="width:0%"></span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Opens (30d)</div>
+            <div class="stat-value" id="orgViews">—</div>
+            <div class="stat-sub" id="orgUniques">—</div>
           </div>
         </div>
 
-        <div class="panel">
-          <h2 style="margin:0 0 0.5rem;font-size:1.1rem">Upload</h2>
-          <label>Document type</label>
-          <div class="row">
-            <label><input type="radio" name="viewType" value="brochure" checked /> Brochure</label>
-            <label><input type="radio" name="viewType" value="flyer" /> Flyer</label>
-          </div>
-          <div class="dropzone" id="dropzone">
-            <p><strong>Choose a PDF</strong> or drag it here</p>
-            <p class="muted">Max size follows your plan</p>
-          </div>
-          <input id="fileInput" type="file" accept="application/pdf" hidden />
-          <p id="fileName" class="muted"></p>
-          <button id="uploadBtn" type="button" disabled>Upload &amp; create share link</button>
-          <p id="uploadError" class="err"></p>
-          <div id="result" class="hidden">
-            <p class="ok"><strong>Ready</strong></p>
-            <label>Share link</label>
+        <div id="projectsView">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Projects</h2>
+            </div>
+            <p class="muted">Folders for estates / developments (e.g. Miravera). Upload brochures inside each project.</p>
             <div class="row">
-              <input id="shareUrl" readonly />
-              <button id="copyBtn" class="secondary" type="button">Copy</button>
+              <div>
+                <label>New project name</label>
+                <input id="projectName" placeholder="Miravera" />
+              </div>
             </div>
-            <p><a id="openLink" href="#" target="_blank" rel="noopener">Open flipbook</a></p>
+            <button id="createProjectBtn" type="button">Create project</button>
+            <p id="projectError" class="err"></p>
+            <div id="projectsGrid" class="plan-grid" style="margin-top:1rem"></div>
           </div>
         </div>
 
-        <div class="panel">
-          <h2 style="margin:0 0 0.75rem;font-size:1.1rem">Your brochures</h2>
-          <table>
-            <thead>
-              <tr><th>File</th><th>Type</th><th>Created</th><th></th></tr>
-            </thead>
-            <tbody id="brochureRows"></tbody>
-          </table>
+        <div id="projectDetailView" class="hidden">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <button id="backToProjects" class="secondary inline" type="button">← Projects</button>
+                <h2 id="projectTitle" style="margin-top:0.75rem">Project</h2>
+                <p class="muted" id="projectSlugLine"></p>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <h2>Upload PDF</h2>
+                <label>Title</label>
+                <input id="brochureTitle" placeholder="Tower A brochure" />
+                <label>Document type</label>
+                <div class="radio-pills">
+                  <label><input type="radio" name="viewType" value="brochure" checked /> Brochure</label>
+                  <label><input type="radio" name="viewType" value="flyer" /> Flyer</label>
+                </div>
+                <div class="dropzone" id="dropzone">
+                  <p><strong>Choose a PDF</strong> or drag it here</p>
+                  <p class="muted">Max size follows your plan</p>
+                </div>
+                <input id="fileInput" type="file" accept="application/pdf" hidden />
+                <p id="fileName" class="muted"></p>
+                <button id="uploadBtn" type="button" disabled>Upload &amp; create share link</button>
+                <p id="uploadError" class="err"></p>
+                <div id="result" class="share-result hidden">
+                  <p><strong>Share link ready</strong></p>
+                  <label>Pretty link</label>
+                  <div class="row">
+                    <input id="shareUrl" readonly />
+                    <button id="copyBtn" class="secondary inline" type="button" style="flex:0 0 auto;margin-top:0.35rem">Copy</button>
+                  </div>
+                  <label>Token link</label>
+                  <input id="tokenUrl" readonly />
+                  <label>Embed code</label>
+                  <div class="row">
+                    <textarea id="embedCode" readonly rows="3"></textarea>
+                    <button id="copyEmbedBtn" class="secondary inline" type="button" style="flex:0 0 auto;margin-top:0.35rem">Copy</button>
+                  </div>
+                  <p style="margin-top:0.75rem"><a id="openLink" href="#" target="_blank" rel="noopener">Open flipbook →</a></p>
+                </div>
+              </div>
+
+              <div>
+                <h2>Brochures &amp; history</h2>
+                <div id="brochureList" class="brochure-list">
+                  <div class="empty-state">No brochures yet.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="analyticsPanel" class="panel hidden">
+            <div class="panel-head">
+              <h2 id="analyticsTitle">Analytics</h2>
+              <button id="closeAnalytics" class="secondary inline" type="button">Close</button>
+            </div>
+            <div class="stats-row">
+              <div class="stat-card">
+                <div class="stat-label">Opens (30d)</div>
+                <div class="stat-value" id="aTotal">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Unique (approx)</div>
+                <div class="stat-value" id="aUnique">0</div>
+              </div>
+            </div>
+            <h2>Top countries</h2>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Country</th><th>Opens</th></tr></thead>
+                <tbody id="countryRows"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

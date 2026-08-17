@@ -1,6 +1,8 @@
 /**
  * Resolve /api/pdf/:token to a Supabase signed URL before PDF.js loads.
  * Avoids Netlify Function 6 MB response limit on large PDFs.
+ * The signed URL stays in memory (window.__VSPH_PDF_URL__) so the address
+ * bar never exposes the storage JWT.
  */
 (function resolvePdfFileBeforeViewer() {
   function loadViewer() {
@@ -16,6 +18,12 @@
   }
 
   var params = new URLSearchParams(window.location.search);
+  var queryTitle = (params.get('title') || '').trim();
+  if (queryTitle) {
+    window.__VSPH_DOC_TITLE__ = queryTitle;
+    document.title = queryTitle;
+  }
+
   var file = params.get('file');
   if (!file) {
     loadViewer();
@@ -46,10 +54,7 @@
       if (!result.ok || !result.data.url) {
         throw new Error(result.data.error || 'Failed to resolve PDF URL');
       }
-      params.set('file', result.data.url);
-      var query = params.toString();
-      var nextUrl = window.location.pathname + (query ? '?' + query : '');
-      history.replaceState(null, '', nextUrl);
+      window.__VSPH_PDF_URL__ = result.data.url;
       loadViewer();
     })
     .catch(function (err) {

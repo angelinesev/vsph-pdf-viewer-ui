@@ -2,6 +2,8 @@ import { handleOptions, jsonResponse } from "../_shared/cors.ts";
 import { getServiceClient } from "../_shared/supabase.ts";
 import { hashPassword, requireAdmin } from "../_shared/auth.ts";
 
+const VSPH_PLAN_ID = "00000000-0000-4000-8000-000000000002";
+
 function slugify(name: string) {
   return name
     .toLowerCase()
@@ -22,10 +24,14 @@ Deno.serve(async (req) => {
   const action = url.searchParams.get("action") || "list";
 
   if (req.method === "GET" && action === "list") {
-    const { data: orgs, error } = await supabase
+    let q = supabase
       .from("organizations")
       .select("id, name, slug, status, plan_id, created_at, plans(name, monthly_brochure_limit, max_file_bytes, max_storage_bytes, features)")
       .order("created_at", { ascending: false });
+    if (url.searchParams.get("include_archived") !== "1") {
+      q = q.eq("status", "active");
+    }
+    const { data: orgs, error } = await q;
     if (error) return jsonResponse(500, { error: error.message });
 
     const { data: brochures, error: brochureError } = await supabase
@@ -72,12 +78,11 @@ Deno.serve(async (req) => {
       return jsonResponse(400, { error: "Invalid JSON" });
     }
     const name = String(body.name || "").trim();
-    const planId = String(body.plan_id || "");
-    if (!name || !planId) return jsonResponse(400, { error: "name and plan_id are required" });
+    if (!name) return jsonResponse(400, { error: "name is required" });
     let slug = String(body.slug || slugify(name));
     const { data, error } = await supabase
       .from("organizations")
-      .insert({ name, slug, plan_id: planId, status: "active" })
+      .insert({ name, slug, plan_id: VSPH_PLAN_ID, status: "active" })
       .select("*")
       .single();
     if (error) return jsonResponse(500, { error: error.message });
@@ -95,8 +100,9 @@ Deno.serve(async (req) => {
     }
     const patch: Record<string, unknown> = {};
     if (body.name != null) patch.name = String(body.name).trim();
-    if (body.plan_id != null) patch.plan_id = String(body.plan_id);
     if (body.status != null) patch.status = String(body.status);
+    // plan_id locked to VSPH Plan
+    patch.plan_id = VSPH_PLAN_ID;
     const { data, error } = await supabase.from("organizations").update(patch).eq("id", id).select("*").single();
     if (error) return jsonResponse(500, { error: error.message });
     return jsonResponse(200, { organization: data });
@@ -122,7 +128,7 @@ Deno.serve(async (req) => {
       .eq("active", true);
     if (countError) return jsonResponse(500, { error: countError.message });
     if ((activeCodes || 0) > 0) {
-      return jsonResponse(409, { error: "This organization already has an access code. Revoke it first." });
+      return jsonResponse(409, { error: "This organization already has an access code. Use Rotate code instead." });
     }
     const password_hash = await hashPassword(password);
     const { data, error } = await supabase
@@ -140,6 +146,37 @@ Deno.serve(async (req) => {
     return jsonResponse(201, { code: data });
   }
 
+  if (req.method === "POST" && action === "rotate-code") {
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return jsonResponse(400, { error: "Invalid JSON" });
+    }
+    const orgId = String(body.org_id || "");
+    const code = String(body.code || "").trim().toUpperCase();
+    const password = String(body.password || "");
+    if (!orgId || !code || !password) {
+      return jsonResponse(400, { error: "org_id, code, and password are required" });
+    }
+    await supabase.from("developer_codes").update({ active: false }).eq("org_id", orgId).eq("active", true);
+    await supabase.from("developer_sessions").delete().eq("org_id", orgId);
+    const password_hash = await hashPassword(password);
+    const { data, error } = await supabase
+      .from("developer_codes")
+      .insert({
+        org_id: orgId,
+        code,
+        password_hash,
+        active: true,
+        expires_at: body.expires_at || null,
+      })
+      .select("id, code, active, expires_at, created_at")
+      .single();
+    if (error) return jsonResponse(500, { error: error.message });
+    return jsonResponse(201, { code: data, rotated: true });
+  }
+
   if (req.method === "POST" && action === "revoke-code") {
     let body: { id?: string };
     try {
@@ -148,18 +185,30 @@ Deno.serve(async (req) => {
       return jsonResponse(400, { error: "Invalid JSON" });
     }
     if (!body.id) return jsonResponse(400, { error: "id is required" });
+    const { data: existing, error: lookupError } = await supabase
+      .from("developer_codes")
+      .select("id, code, active, org_id")
+      .eq("id", body.id)
+      .maybeSingle();
+    if (lookupError) return jsonResponse(500, { error: lookupError.message });
+    if (!existing) return jsonResponse(404, { error: "Code not found" });
+
     const { data, error } = await supabase
       .from("developer_codes")
       .update({ active: false })
       .eq("id", body.id)
-      .select("id, code, active")
+      .select("id, code, active, org_id")
       .single();
     if (error) return jsonResponse(500, { error: error.message });
-    return jsonResponse(200, { code: data });
+
+    await supabase.from("organizations").update({ status: "archived" }).eq("id", existing.org_id);
+    await supabase.from("developer_sessions").delete().eq("org_id", existing.org_id);
+    await supabase.from("developer_codes").update({ active: false }).eq("org_id", existing.org_id).eq("active", true);
+
+    return jsonResponse(200, { code: data, archived: true });
   }
 
   if (req.method === "POST" && action === "bootstrap-admin") {
-    // One-time helper: add current authenticated user as platform admin
     const { error } = await supabase.from("platform_admins").upsert({
       user_id: admin.user!.id,
       email: admin.user!.email || null,
