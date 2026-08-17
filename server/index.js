@@ -242,7 +242,6 @@ app.post('/api/links', uploadLimiter, requireSupabase, async (req, res) => {
   res.status(result.status).json(result.body);
 });
 
-app.use('/create', express.static(path.join(ROOT, 'create')));
 app.use(express.static(ROOT));
 
 app.use((err, _req, res, _next) => {
@@ -256,7 +255,6 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`PDF Viewer running at ${BASE_URL}`);
-  console.log(`Create: ${BASE_URL}/create/`);
   if (!isSupabaseConfigured()) {
     console.warn('Supabase not configured ? upload/link APIs disabled until .env is set.');
   }

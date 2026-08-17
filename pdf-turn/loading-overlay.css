@@ -7,7 +7,7 @@
 	align-items: center;
 	justify-content: center;
 	gap: 14px;
-	background: #2b2b2b;
+	background: #141414;
 	opacity: 1;
 	transition: opacity 0.3s ease;
 	pointer-events: none;

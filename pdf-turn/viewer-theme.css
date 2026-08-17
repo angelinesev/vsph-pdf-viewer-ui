@@ -1,0 +1,365 @@
+/* VSPH magazine viewer — scoped with body.vsph-magazine-ui */
+
+body.vsph-magazine-ui {
+	background: #141414;
+	color: #e5e7eb;
+	--vsph-dock-space: 96px;
+	--vsph-stage-pad-y: 16px;
+	--vsph-stage-pad-x: 16px;
+}
+
+body.vsph-magazine-ui #outerContainer,
+body.vsph-magazine-ui #mainContainer {
+	background: #141414;
+	background-image:
+		radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 55%),
+		linear-gradient(180deg, #161616 0%, #0f0f0f 100%);
+}
+
+body.vsph-magazine-ui #mainContainer {
+	top: 0 !important;
+}
+
+body.vsph-magazine-ui #viewerContainer {
+	background: transparent !important;
+	top: 0 !important;
+	bottom: 0 !important;
+	left: 0 !important;
+	right: 0 !important;
+	padding: var(--vsph-stage-pad-y) var(--vsph-stage-pad-x) calc(var(--vsph-dock-space) + 4px) !important;
+	overflow: hidden !important;
+	box-shadow: none !important;
+	box-sizing: border-box !important;
+}
+
+body.vsph-magazine-ui .bookFlipMode #viewerContainer,
+body.vsph-magazine-ui .trifoldMode #viewerContainer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden !important;
+}
+
+body.vsph-magazine-ui .bookViewer,
+body.vsph-magazine-ui #viewer.bookViewer {
+	margin: 0 auto !important;
+	flex-shrink: 0;
+	max-width: 100%;
+	max-height: 100%;
+}
+
+body.vsph-magazine-ui .bookViewer .page,
+body.vsph-magazine-ui #viewer .page {
+	background: #fff;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+body.vsph-magazine-ui #sidebarContainer {
+	background: #1a1a1a;
+	border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.vsph-magazine-ui #toolbarSidebar {
+	background: #222;
+}
+
+body.vsph-magazine-ui .trifoldMode .trifold-scene {
+	flex-shrink: 0;
+	max-width: 100%;
+	max-height: 100%;
+}
+
+body.vsph-magazine-ui #viewerContainer.pdfPresentationMode {
+	padding: 12px !important;
+}
+
+/* Hide non-minimal controls */
+body.vsph-magazine-ui #findbar,
+body.vsph-magazine-ui #secondaryToolbar,
+body.vsph-magazine-ui #loadingBar,
+body.vsph-magazine-ui #viewFind,
+body.vsph-magazine-ui #openFile,
+body.vsph-magazine-ui #secondaryOpenFile,
+body.vsph-magazine-ui #secondaryPrint,
+body.vsph-magazine-ui #secondaryDownload,
+body.vsph-magazine-ui #viewBookmark,
+body.vsph-magazine-ui #secondaryViewBookmark,
+body.vsph-magazine-ui #secondaryToolbarToggle,
+body.vsph-magazine-ui #zoomIn,
+body.vsph-magazine-ui #zoomOut,
+body.vsph-magazine-ui #scrollVertical,
+body.vsph-magazine-ui #scrollHorizontal,
+body.vsph-magazine-ui #scrollWrapped,
+body.vsph-magazine-ui #bookFlip,
+body.vsph-magazine-ui .verticalToolbarSeparator,
+body.vsph-magazine-ui .toolbarButtonSpacer {
+	display: none !important;
+}
+
+/* Bottom floating dock */
+body.vsph-magazine-ui .toolbar {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 12px;
+	z-index: 10000;
+	background: transparent;
+	border: none;
+	pointer-events: none;
+	height: auto;
+}
+
+body.vsph-magazine-ui #loadingBar {
+	display: none !important;
+}
+
+body.vsph-magazine-ui #toolbarContainer {
+	pointer-events: auto;
+	width: auto;
+	max-width: min(920px, calc(100vw - 24px));
+	margin: 0 auto;
+	border-radius: 999px;
+	background: rgba(28, 28, 28, 0.94);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	padding: 6px 10px;
+	height: auto !important;
+	min-height: 0 !important;
+	position: relative !important;
+}
+
+body.vsph-magazine-ui #toolbarViewer {
+	display: block;
+	width: 100%;
+	height: auto;
+	min-height: 0;
+}
+
+body.vsph-magazine-ui #toolbarViewerLeft,
+body.vsph-magazine-ui #toolbarViewerMiddle,
+body.vsph-magazine-ui #toolbarViewerRight {
+	display: none !important;
+}
+
+body.vsph-magazine-ui .vsph-dock-row {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	width: 100%;
+	min-height: 40px;
+}
+
+body.vsph-magazine-ui .vsph-dock-row > * {
+	flex: 0 0 auto;
+	float: none !important;
+	position: static !important;
+	transform: none !important;
+	left: auto !important;
+	right: auto !important;
+}
+
+body.vsph-magazine-ui .vsph-dock-row .splitToolbarButton {
+	display: inline-flex;
+	align-items: center;
+	margin: 0;
+}
+
+body.vsph-magazine-ui .vsph-dock-row .splitToolbarButton > .toolbarButton {
+	float: none;
+}
+
+body.vsph-magazine-ui .vsph-dock-group {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	flex: 0 0 auto;
+}
+
+body.vsph-magazine-ui .vsph-dock-group--pages {
+	gap: 6px;
+}
+
+body.vsph-magazine-ui .toolbarButton,
+body.vsph-magazine-ui .dropdownToolbarButton select {
+	filter: brightness(0) invert(1);
+	opacity: 0.92;
+}
+
+body.vsph-magazine-ui .toolbarButton:hover,
+body.vsph-magazine-ui .toolbarButton:focus {
+	opacity: 1;
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.vsph-magazine-ui #vsphShareBtn {
+	filter: none;
+	opacity: 1;
+	background: rgba(255, 255, 255, 0.12) !important;
+	color: #fff !important;
+	border-radius: 8px;
+	font-size: 11px;
+	font-weight: 700;
+	width: auto !important;
+	min-width: 52px;
+	height: 28px;
+	line-height: 28px;
+	padding: 0 10px;
+}
+
+body.vsph-magazine-ui #pageNumber {
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	color: #fff;
+	border-radius: 6px;
+	width: 2.4rem;
+	height: 28px;
+	text-align: center;
+	filter: none;
+	margin: 0;
+}
+
+body.vsph-magazine-ui #numPages {
+	color: rgba(255, 255, 255, 0.75);
+	font-size: 12px;
+	filter: none;
+	white-space: nowrap;
+}
+
+body.vsph-magazine-ui .vsph-dock-row .dropdownToolbarButton {
+	position: static !important;
+	display: inline-flex !important;
+	align-items: center;
+	margin: 0 !important;
+	min-width: 0;
+}
+
+body.vsph-magazine-ui .vsph-dock-row .dropdownToolbarButton select {
+	position: static !important;
+}
+
+body.vsph-magazine-ui #scaleSelectContainer {
+	filter: none;
+	margin: 0;
+}
+
+body.vsph-magazine-ui #scaleSelect {
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	color: #fff;
+	border-radius: 8px;
+	font-size: 12px;
+	padding: 4px 8px;
+	min-width: 76px;
+	max-width: 96px;
+	height: 28px;
+}
+
+body.vsph-magazine-ui .vsph-dock-row .toolbarButton {
+	width: 32px;
+	height: 32px;
+}
+
+@media (max-width: 640px) {
+	body.vsph-magazine-ui {
+		--vsph-stage-pad-x: 8px;
+		--vsph-stage-pad-y: 12px;
+		--vsph-dock-space: 88px;
+	}
+
+	body.vsph-magazine-ui #toolbarContainer {
+		max-width: calc(100vw - 12px);
+		overflow-x: auto;
+		border-radius: 16px;
+	}
+
+	body.vsph-magazine-ui .vsph-dock-row {
+		justify-content: flex-start;
+		min-width: max-content;
+		padding: 0 4px;
+	}
+}
+
+/* Share overlay (dark theme) */
+body.vsph-magazine-ui #vsphShareOverlay {
+	display: none;
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	background: rgba(0, 0, 0, 0.55);
+	align-items: center;
+	justify-content: center;
+	padding: 1.25rem;
+}
+
+body.vsph-magazine-ui #vsphShareOverlay.open {
+	display: flex;
+}
+
+body.vsph-magazine-ui .vsph-share-card {
+	background: #1f1f1f;
+	color: #f3f4f6;
+	max-width: 520px;
+	width: 100%;
+	border-radius: 14px;
+	padding: 1.1rem 1.2rem 1rem;
+	font-family: Inter, system-ui, sans-serif;
+	box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.vsph-magazine-ui .vsph-share-card h2 {
+	margin: 0 0 0.75rem;
+	font-size: 1.05rem;
+}
+
+body.vsph-magazine-ui .vsph-share-card label {
+	display: block;
+	font-size: 0.78rem;
+	font-weight: 600;
+	margin: 0.55rem 0 0.3rem;
+	color: #9ca3af;
+}
+
+body.vsph-magazine-ui .vsph-share-row {
+	display: flex;
+	gap: 0.45rem;
+	align-items: flex-start;
+}
+
+body.vsph-magazine-ui .vsph-share-row input,
+body.vsph-magazine-ui .vsph-share-row textarea {
+	flex: 1;
+	width: 100%;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: #141414;
+	color: #f3f4f6;
+	border-radius: 8px;
+	padding: 0.45rem 0.55rem;
+	font-size: 0.8rem;
+}
+
+body.vsph-magazine-ui .vsph-share-row textarea {
+	font-family: ui-monospace, Menlo, Consolas, monospace;
+	min-height: 4.4rem;
+	resize: vertical;
+}
+
+body.vsph-magazine-ui .vsph-share-row button,
+body.vsph-magazine-ui .vsph-share-close {
+	border: 0;
+	background: #2563eb;
+	color: #fff;
+	border-radius: 8px;
+	padding: 0.45rem 0.7rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+body.vsph-magazine-ui .vsph-share-close {
+	margin-top: 0.85rem;
+	background: #374151;
+}

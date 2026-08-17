@@ -1,5 +1,7 @@
 # Brochure SaaS (multi-tenant)
 
+What this product does: see [PRODUCT.md](PRODUCT.md).
+
 Upload PDFs as brochures or flyers per organization, with plan quotas, developer-code login, and an admin console. Public share links open the existing PDF.js flipbook / trifold viewer.
 
 Live site: [https://vsph-pdfviewer.netlify.app](https://vsph-pdfviewer.netlify.app)
@@ -8,7 +10,7 @@ Live site: [https://vsph-pdfviewer.netlify.app](https://vsph-pdfviewer.netlify.a
 
 - **Admin portal** (`/admin/`) — Supabase Auth + `platform_admins`
 - **Developer portal** (`/developer/`) — developer code + password → org session
-- **SaaS API** — same-origin `/api/saas/*` on Netlify Functions / Express (avoids Edge Function CORS)
+- **SaaS API** — same-origin `/api/saas/*` on Netlify Functions / Express
 - **Postgres** — `plans`, `organizations`, `developer_codes`, `brochures`, `brochure_links`, `usage_monthly`
 - **Storage** — private `pdfs` bucket, org-prefixed paths, signed URLs
 - **Viewer** — existing brochure/flyer engine under `external/` + `pdf-turn/`
@@ -87,10 +89,6 @@ npm run deploy:netlify
 | `BOOTSTRAP_SECRET` | First admin bootstrap at `/admin/` |
 
 After deploy, open `/admin/`, enter email/password + bootstrap secret, click Bootstrap, then Sign in.
-
-## Optional: Supabase Edge Functions
-
-Edge Functions under `supabase/functions/` mirror the same routes if you prefer calling Supabase directly. Not required when using `/api/saas`.
 
 ## License
 

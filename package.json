@@ -12,7 +12,6 @@
     "validate:env": "node scripts/validate-env.js",
     "write:config": "node scripts/write-portal-config.js",
     "reset:admin": "node scripts/reset-admin.js",
-    "apply:plan-tiers": "node scripts/apply-plan-tiers.js",
     "apply:vsph-plan": "node scripts/apply-vsph-plan.js",
     "apply:projects": "node scripts/apply-projects-analytics.js",
     "verify:netlify": "node scripts/verify-netlify.js",
