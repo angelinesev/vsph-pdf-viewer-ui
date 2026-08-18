@@ -1,5 +1,9 @@
+const LOCAL_UI_MODE = process.env.LOCAL_UI_MODE === 'true' || process.env.LOCAL_UI_MODE === '1';
+
 require('dotenv').config();
-require('dotenv').config({ path: '.env.local', override: true });
+if (!LOCAL_UI_MODE) {
+  require('dotenv').config({ path: '.env.local', override: true });
+}
 
 const crypto = require('crypto');
 const path = require('path');
@@ -110,20 +114,29 @@ app.get('/view/:token', requireSupabase, async (req, res) => {
   sendHandlerResult(res, result);
 });
 
-app.get('/:org/:project/:brochure?', requireSupabase, async (req, res, next) => {
+app.get('/:org/:project/:brochure?', (req, res, next) => {
+  // Skip reserved paths before applying Supabase requirement
   const reserved = new Set(['api', 'apps', 'admin', 'developer', 'create', 'view', 'external', 'pdf-turn']);
   if (reserved.has(String(req.params.org).toLowerCase())) {
     next();
     return;
   }
-  try {
-    const {
-      resolveVanityPath,
-      logViewEvent,
-      getOrCreateShareToken,
-      hubHtml,
-      VIEWER_PATH,
-    } = require('./lib/projects-analytics');
+  // Check Supabase for actual vanity URL routes
+  if (!isSupabaseConfigured()) {
+    res.status(503).json({
+      error: 'Supabase is not configured. Copy .env.example to .env and set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+    });
+    return;
+  }
+  (async () => {
+    try {
+      const {
+        resolveVanityPath,
+        logViewEvent,
+        getOrCreateShareToken,
+        hubHtml,
+        VIEWER_PATH,
+      } = require('./lib/projects-analytics');
     const { parseViewType } = require('./lib/constants');
     const resolved = await resolveVanityPath(req.params.org, req.params.project, req.params.brochure);
     if (resolved.status !== 200) {
@@ -151,10 +164,11 @@ app.get('/:org/:project/:brochure?', requireSupabase, async (req, res, next) => 
     const fileParam = encodeURIComponent(`/api/pdf/${link.token}`);
     const publicPath = encodeURIComponent(`/${req.params.org}/${req.params.project}/${req.params.brochure}`);
     const docTitle = encodeURIComponent(String(resolved.brochure.title || resolved.brochure.filename || '').slice(0, 200));
-    res.redirect(302, `${VIEWER_PATH}?file=${fileParam}&client=1&view=${viewType}&public=${publicPath}&title=${docTitle}`);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+      res.redirect(302, `${VIEWER_PATH}?file=${fileParam}&client=1&view=${viewType}&public=${publicPath}&title=${docTitle}`);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  })();
 });
 
 app.get('/admin', (_req, res) => res.redirect('/apps/admin/'));
