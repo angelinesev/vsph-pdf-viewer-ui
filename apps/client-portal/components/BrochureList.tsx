@@ -2,6 +2,7 @@ import { useEffect, useImperativeHandle, useState, forwardRef } from 'react';
 import { callApi } from '../../shared/api';
 import type { Brochure, LinkResult } from '../types';
 import Icon from './Icon';
+import Modal from './Modal';
 
 interface BrochureListProps {
   token: string;
@@ -22,6 +23,10 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
 ) {
   const [brochures, setBrochures] = useState<Brochure[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function refresh() {
     const list = await callApi<{ brochures: Brochure[] }>(`brochures-list?project_id=${encodeURIComponent(projectId)}`, {
@@ -37,6 +42,10 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
     refresh().catch((err) => onError(err.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, projectId]);
 
   async function handleShare(id: string) {
     onError('');
@@ -59,16 +68,19 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
     }
   }
 
-  async function handleDelete(id: string, title: string) {
-    const ok = window.confirm(`Delete "${title}"?\n\nShare links will stop working and the file will be removed from storage.`);
-    if (!ok) return;
+  async function confirmDelete() {
+    if (!pendingDelete) return;
     onError('');
+    setDeleting(true);
     try {
-      await callApi('brochures-delete', { method: 'POST', token, body: { brochure_id: id } });
+      await callApi('brochures-delete', { method: 'POST', token, body: { brochure_id: pendingDelete.id } });
       await refresh();
       onDeleted();
+      setPendingDelete(null);
     } catch (err: any) {
       onError(err.message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -76,6 +88,10 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
   const visible = term
     ? brochures.filter((b) => (b.title || b.filename).toLowerCase().includes(term))
     : brochures;
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = visible.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div>
@@ -85,7 +101,7 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
         {loaded && brochures.length > 0 && visible.length === 0 && (
           <div className="empty-state">No flipbooks match "{searchTerm}".</div>
         )}
-        {visible.map((b) => {
+        {pageItems.map((b) => {
           const title = b.title || b.filename;
           return (
             <div className="brochure-item" key={b.id}>
@@ -117,7 +133,7 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
                   type="button"
                   aria-label="Delete"
                   title="Delete"
-                  onClick={() => handleDelete(b.id, title)}
+                  onClick={() => setPendingDelete({ id: b.id, title })}
                 >
                   <Icon name="delete" />
                 </button>
@@ -126,6 +142,57 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
           );
         })}
       </div>
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Previous page"
+            disabled={currentPage === 1}
+            onClick={() => setPage(currentPage - 1)}
+          >
+            <Icon name="chevron_left" />
+          </button>
+          <span className="pagination-label">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Next page"
+            disabled={currentPage === totalPages}
+            onClick={() => setPage(currentPage + 1)}
+          >
+            <Icon name="chevron_right" />
+          </button>
+        </div>
+      )}
+      {pendingDelete && (
+        <Modal
+          title="Delete brochure?"
+          onClose={() => {
+            if (!deleting) setPendingDelete(null);
+          }}
+        >
+          <p>
+            Are you sure you want to delete <strong>&quot;{pendingDelete.title}&quot;</strong>? Share links will stop
+            working and the file will be removed from storage.
+          </p>
+          <div className="confirm-actions">
+            <button
+              type="button"
+              className="secondary"
+              disabled={deleting}
+              onClick={() => setPendingDelete(null)}
+            >
+              Cancel
+            </button>
+            <button type="button" className="danger" disabled={deleting} onClick={confirmDelete}>
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 });

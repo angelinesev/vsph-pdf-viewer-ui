@@ -1,4 +1,24 @@
+import { useEffect } from 'react';
 import type { CountryStat } from './types';
+
+let bodyScrollLockCount = 0;
+let previousBodyOverflow = '';
+
+export function useLockBodyScroll(): void {
+  useEffect(() => {
+    if (bodyScrollLockCount === 0) {
+      previousBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    bodyScrollLockCount += 1;
+    return () => {
+      bodyScrollLockCount -= 1;
+      if (bodyScrollLockCount === 0) {
+        document.body.style.overflow = previousBodyOverflow;
+      }
+    };
+  }, []);
+}
 
 export function formatBytes(n: number | null | undefined): string {
   if (n == null) return 'Custom';
