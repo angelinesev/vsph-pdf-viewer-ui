@@ -13,34 +13,39 @@ try {
 
 const root = path.join(__dirname, '..');
 const out = path.join(root, 'apps', 'shared', 'config.js');
+const localUiMode = process.env.LOCAL_UI_MODE === 'true' || process.env.LOCAL_UI_MODE === '1';
 
 const supabaseUrl =
   process.env.SUPABASE_URL
   || process.env.NEXT_PUBLIC_SUPABASE_URL
-  || 'https://phftvaptlqibllkqcduf.supabase.co';
+  || (localUiMode ? 'https://example.supabase.co' : 'https://phftvaptlqibllkqcduf.supabase.co');
 
 const supabaseAnonKey =
   process.env.SUPABASE_ANON_KEY
   || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  || '';
+  || (localUiMode ? 'demo-anon-key' : '');
 
 let publicBaseUrl =
   process.env.PUBLIC_BASE_URL
   || process.env.BASE_URL
   || process.env.URL
-  || 'https://vsph-pdfviewer.netlify.app';
+  || (localUiMode ? 'http://localhost:3000' : 'https://vsph-pdfviewer.netlify.app');
 
 if (publicBaseUrl.endsWith('/')) {
   publicBaseUrl = publicBaseUrl.slice(0, -1);
 }
 
-if (!supabaseAnonKey) {
+if (!supabaseAnonKey && !localUiMode) {
   console.warn(
     '[write-portal-config] SUPABASE_ANON_KEY missing - portals will not auth until set.',
   );
 }
 
-if (!supabaseAnonKey && process.env.NETLIFY === 'true') {
+if (localUiMode) {
+  console.warn('[write-portal-config] LOCAL_UI_MODE enabled - using demo Supabase values for UX editing.');
+}
+
+if (!supabaseAnonKey && process.env.NETLIFY === 'true' && !localUiMode) {
   console.error('[write-portal-config] SUPABASE_ANON_KEY is required on Netlify.');
   process.exit(1);
 }
