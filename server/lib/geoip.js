@@ -1,4 +1,6 @@
 const INVALID_CODES = new Set(['XX', 'T1', 'A1', 'A2', 'O1', '']);
+const DEFAULT_COUNTRY = 'PH';
+const DEFAULT_COUNTRY_NAME = 'Philippines';
 
 function normalizeHeaders(headers = {}) {
   const h = {};
@@ -13,6 +15,11 @@ function normalizeCountryCode(raw) {
   const code = String(raw).trim().toUpperCase().slice(0, 2);
   if (!/^[A-Z]{2}$/.test(code) || INVALID_CODES.has(code)) return null;
   return code;
+}
+
+function isUnknownCountryCode(code) {
+  if (!code) return true;
+  return INVALID_CODES.has(String(code).trim().toUpperCase());
 }
 
 function parseNetlifyGeoHeader(value) {
@@ -60,6 +67,7 @@ function countryFromHeaders(headers = {}) {
   const h = normalizeHeaders(headers);
   const candidates = [
     h['x-vsph-country'],
+    h['x-country-code'],
     h['x-country'],
     h['cf-ipcountry'],
     h['x-nf-country-code'],
@@ -70,7 +78,7 @@ function countryFromHeaders(headers = {}) {
     const code = typeof c === 'string' ? normalizeCountryCode(c) : c;
     if (code) return code;
   }
-  return 'XX';
+  return null;
 }
 
 const ipCache = new Map();
@@ -95,45 +103,77 @@ function cacheSet(ip, code) {
   ipCache.set(ip, { code, expires: Date.now() + CACHE_TTL_MS });
 }
 
+async function lookupIpApiCo(ip) {
+  const res = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/country_code/`, {
+    headers: { 'User-Agent': 'vsph-pdf-viewer/1.0' },
+    signal: AbortSignal.timeout(2500),
+  });
+  if (!res.ok) return null;
+  const text = (await res.text()).trim();
+  return normalizeCountryCode(text);
+}
+
+async function lookupIpApiCom(ip) {
+  const res = await fetch(`https://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,countryCode`, {
+    headers: { 'User-Agent': 'vsph-pdf-viewer/1.0' },
+    signal: AbortSignal.timeout(2500),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data?.status !== 'success') return null;
+  return normalizeCountryCode(data.countryCode);
+}
+
 async function countryFromIp(ip) {
   if (!ip || isPrivateIp(ip)) return null;
   const cached = cacheGet(ip);
-  if (cached !== undefined) return cached === 'XX' ? null : cached;
-
-  try {
-    const res = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/country_code/`, {
-      headers: { 'User-Agent': 'vsph-pdf-viewer/1.0' },
-      signal: AbortSignal.timeout(2500),
-    });
-    if (res.ok) {
-      const text = (await res.text()).trim();
-      const code = normalizeCountryCode(text);
-      if (code) {
-        cacheSet(ip, code);
-        return code;
-      }
-    }
-  } catch (err) {
-    console.warn('geoip lookup failed:', err.message);
+  if (cached !== undefined) {
+    return isUnknownCountryCode(cached) ? null : cached;
   }
 
-  cacheSet(ip, 'XX');
+  try {
+    const fromIpApiCo = await lookupIpApiCo(ip);
+    if (fromIpApiCo) {
+      cacheSet(ip, fromIpApiCo);
+      return fromIpApiCo;
+    }
+  } catch (err) {
+    console.warn('geoip ipapi.co lookup failed:', err.message);
+  }
+
+  try {
+    const fromIpApiCom = await lookupIpApiCom(ip);
+    if (fromIpApiCom) {
+      cacheSet(ip, fromIpApiCom);
+      return fromIpApiCom;
+    }
+  } catch (err) {
+    console.warn('geoip ip-api.com lookup failed:', err.message);
+  }
+
   return null;
+}
+
+function defaultCountry(reason) {
+  if (reason) console.warn(`geoip: defaulting to ${DEFAULT_COUNTRY} (${reason})`);
+  return DEFAULT_COUNTRY;
 }
 
 async function resolveCountry(headers = {}) {
   const fromHeaders = countryFromHeaders(headers);
-  if (fromHeaders !== 'XX') return fromHeaders;
+  if (fromHeaders) return fromHeaders;
 
   const ip = clientIpFromHeaders(headers);
-  if (!ip) return 'XX';
+  if (!ip) return defaultCountry('no public IP');
 
   const fromIp = await countryFromIp(ip);
-  return fromIp || 'XX';
+  if (fromIp) return fromIp;
+
+  return defaultCountry(`lookup failed for ${ip}`);
 }
 
 function countryDisplayName(code, locale = 'en') {
-  if (!code || code === 'XX') return 'Unknown';
+  if (isUnknownCountryCode(code)) return DEFAULT_COUNTRY_NAME;
   try {
     return new Intl.DisplayNames([locale], { type: 'region' }).of(code) || code;
   } catch {
@@ -142,9 +182,11 @@ function countryDisplayName(code, locale = 'en') {
 }
 
 module.exports = {
+  DEFAULT_COUNTRY,
   countryFromHeaders,
   clientIpFromHeaders,
   countryFromIp,
   resolveCountry,
   countryDisplayName,
+  isUnknownCountryCode,
 };

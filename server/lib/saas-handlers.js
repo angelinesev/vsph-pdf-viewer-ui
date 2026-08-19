@@ -550,6 +550,74 @@ async function projectsUpdate(reqLike, body) {
   return { status: 200, body: { project: data } };
 }
 
+async function projectsDelete(reqLike, body) {
+  const auth = await requireDeveloper(reqLike);
+  if (auth.error) return auth.error;
+  const idCheck = requireUuid(body.project_id, 'project_id');
+  if (idCheck.error) return idCheck.error;
+
+  const supabase = getSupabase();
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('id, name, slug')
+    .eq('id', idCheck.value)
+    .eq('org_id', auth.org.id)
+    .is('archived_at', null)
+    .maybeSingle();
+  if (projectError) return safeServerError(projectError);
+  if (!project) return publicError(404, 'Project not found');
+  if (project.slug === 'uncategorized') {
+    return publicError(400, 'The Uncategorized folder cannot be deleted');
+  }
+
+  const { data: brochures, error: listError } = await supabase
+    .from('brochures')
+    .select('id, org_id, storage_path')
+    .eq('org_id', auth.org.id)
+    .eq('project_id', project.id);
+  if (listError) return safeServerError(listError);
+
+  try {
+    for (const brochure of brochures || []) {
+      await deleteBrochureForOrg(supabase, auth.org.id, brochure);
+    }
+  } catch (deleteError) {
+    return safeServerError(deleteError);
+  }
+
+  const deletedCount = (brochures || []).length;
+  if (deletedCount) {
+    await adjustUsageMonthly(supabase, auth.org.id, -deletedCount);
+  }
+
+  const { error: projectDeleteError } = await supabase
+    .from('projects')
+    .delete()
+    .eq('id', project.id)
+    .eq('org_id', auth.org.id);
+  if (projectDeleteError) return safeServerError(projectDeleteError);
+
+  let usage;
+  try {
+    usage = await getOrgUsage(supabase, auth.org.id);
+  } catch (err) {
+    return safeServerError(err);
+  }
+
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      deleted_project_id: project.id,
+      brochures_deleted: deletedCount,
+      usage: {
+        active: usage.active,
+        storage_used: usage.storageUsed,
+      },
+    },
+  };
+}
+
 async function vanityUrlsForBrochure(supabase, brochure, org) {
   const base = getBaseUrl();
   let projectSlug = null;
@@ -800,13 +868,90 @@ async function linksCreate(reqLike, body) {
   };
 }
 
-function summarizeEvents(events) {
-  const { countryDisplayName } = require('./geoip');
-  const total = events.length;
-  const uniques = new Set(events.map((e) => e.visitor_day_hash).filter(Boolean)).size;
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function parseWindowDays(query = {}) {
+  const raw = Number(query.days);
+  if ([7, 30, 90].includes(raw)) return raw;
+  return 30;
+}
+
+function splitEventsByWindow(events, windowDays) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const currentStart = new Date(now - windowDays * msPerDay).toISOString();
+  const previousStart = new Date(now - 2 * windowDays * msPerDay).toISOString();
+  const current = [];
+  const previous = [];
+  (events || []).forEach((e) => {
+    const at = e.occurred_at;
+    if (!at) return;
+    if (at >= currentStart) current.push(e);
+    else if (at >= previousStart) previous.push(e);
+  });
+  return { current, previous };
+}
+
+function pctDelta(current, previous) {
+  if (!previous) return null;
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+}
+
+function sharePct(count, total) {
+  if (!total) return 0;
+  return Math.round((count / total) * 1000) / 10;
+}
+
+function dailySeries(events, windowDays = 30) {
+  const now = new Date();
+  const utcToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const map = new Map();
+  const days = [];
+  for (let i = windowDays - 1; i >= 0; i -= 1) {
+    const key = new Date(utcToday - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    days.push(key);
+    map.set(key, { date: key, opens: 0, hashes: new Set() });
+  }
+  (events || []).forEach((e) => {
+    const key = String(e.occurred_at || '').slice(0, 10);
+    const row = map.get(key);
+    if (!row) return;
+    row.opens += 1;
+    if (e.visitor_day_hash) row.hashes.add(e.visitor_day_hash);
+  });
+  return days.map((key) => {
+    const row = map.get(key);
+    return { date: key, opens: row.opens, unique: row.hashes.size };
+  });
+}
+
+function weekdayBuckets(events) {
+  const buckets = WEEKDAY_LABELS.map((label, dow) => ({ dow, label, opens: 0 }));
+  (events || []).forEach((e) => {
+    if (!e.occurred_at) return;
+    const dow = new Date(e.occurred_at).getUTCDay();
+    buckets[dow].opens += 1;
+  });
+  return buckets;
+}
+
+function lastOpenedAt(events) {
+  let max = null;
+  (events || []).forEach((e) => {
+    if (!e.occurred_at) return;
+    if (!max || e.occurred_at > max) max = e.occurred_at;
+  });
+  return max;
+}
+
+function summarizeEventsCore(events) {
+  const { countryDisplayName, DEFAULT_COUNTRY, isUnknownCountryCode } = require('./geoip');
+  const list = events || [];
+  const total = list.length;
+  const uniques = new Set(list.map((e) => e.visitor_day_hash).filter(Boolean)).size;
   const byCountry = {};
-  events.forEach((e) => {
-    const c = e.country || 'XX';
+  list.forEach((e) => {
+    const c = isUnknownCountryCode(e.country) ? DEFAULT_COUNTRY : e.country;
     byCountry[c] = (byCountry[c] || 0) + 1;
   });
   const countries = Object.entries(byCountry)
@@ -814,9 +959,136 @@ function summarizeEvents(events) {
       country,
       country_name: countryDisplayName(country),
       count,
+      share: sharePct(count, total),
     }))
     .sort((a, b) => b.count - a.count);
-  return { total, unique_visitors: uniques, countries };
+  const dayMap = {};
+  list.forEach((e) => {
+    const key = String(e.occurred_at || '').slice(0, 10);
+    if (!key) return;
+    dayMap[key] = (dayMap[key] || 0) + 1;
+  });
+  let peak = null;
+  Object.entries(dayMap).forEach(([date, opens]) => {
+    if (!peak || opens > peak.opens) peak = { date, opens };
+  });
+  return {
+    total,
+    unique_visitors: uniques,
+    countries,
+    peak,
+    opens_per_unique: uniques ? Math.round((total / uniques) * 10) / 10 : 0,
+    weekday: weekdayBuckets(list),
+  };
+}
+
+function summarizeEvents(events, windowDays = 30) {
+  const core = summarizeEventsCore(events);
+  return {
+    ...core,
+    series: dailySeries(events, windowDays),
+  };
+}
+
+function summarizeWithDelta(currentEvents, previousEvents, windowDays = 30) {
+  const current = summarizeEvents(currentEvents, windowDays);
+  const prevCore = summarizeEventsCore(previousEvents);
+  return {
+    ...current,
+    delta: {
+      opens_pct: pctDelta(current.total, prevCore.total),
+      unique_pct: pctDelta(current.unique_visitors, prevCore.unique_visitors),
+    },
+  };
+}
+
+function buildByProject(events, orgTotal, projectMap) {
+  const byProject = new Map();
+  (events || []).forEach((e) => {
+    const pid = e.project_id || '_none';
+    if (!byProject.has(pid)) byProject.set(pid, []);
+    byProject.get(pid).push(e);
+  });
+  return [...byProject.entries()]
+    .map(([pid, list]) => {
+      const project_id = pid === '_none' ? null : pid;
+      const summary = summarizeEventsCore(list);
+      return {
+        project_id,
+        project_name: project_id ? (projectMap.get(project_id) || '(unknown)') : '(no project)',
+        total: summary.total,
+        unique_visitors: summary.unique_visitors,
+        share: sharePct(summary.total, orgTotal),
+      };
+    })
+    .sort((a, b) => b.total - a.total || String(a.project_name).localeCompare(String(b.project_name)));
+}
+
+async function loadProjectMap(supabase, projectIds) {
+  const projectMap = new Map();
+  if (!projectIds.length) return projectMap;
+  const { data: projects, error } = await supabase
+    .from('projects')
+    .select('id, name')
+    .in('id', projectIds);
+  if (error) throw error;
+  (projects || []).forEach((p) => projectMap.set(p.id, p.name));
+  return projectMap;
+}
+
+async function buildBrochureAnalyticsRows(supabase, orgId, byBrochure, orgTotal = 0) {
+  const { data: orgBrochures, error: brochureError } = await supabase
+    .from('brochures')
+    .select('id, title, filename, slug, project_id')
+    .eq('org_id', orgId);
+  if (brochureError) return { error: safeServerError(brochureError) };
+
+  const projectIds = [...new Set((orgBrochures || []).map((b) => b.project_id).filter(Boolean))];
+  let projectMap;
+  try {
+    projectMap = await loadProjectMap(supabase, projectIds);
+  } catch (projectError) {
+    return { error: safeServerError(projectError) };
+  }
+
+  const seen = new Set();
+  const rows = [];
+  (orgBrochures || []).forEach((b) => {
+    seen.add(b.id);
+    const eventList = byBrochure.get(b.id) || [];
+    const summary = summarizeEventsCore(eventList);
+    if (!summary.total) return;
+    rows.push({
+      brochure_id: b.id,
+      title: b.title || b.filename || 'Untitled',
+      filename: b.filename || '',
+      project_id: b.project_id || null,
+      project_name: projectMap.get(b.project_id) || '',
+      total: summary.total,
+      unique_visitors: summary.unique_visitors,
+      share: sharePct(summary.total, orgTotal),
+      last_opened_at: lastOpenedAt(eventList),
+      countries: summary.countries,
+    });
+  });
+  byBrochure.forEach((list, brochureId) => {
+    if (seen.has(brochureId)) return;
+    const summary = summarizeEventsCore(list);
+    rows.push({
+      brochure_id: brochureId,
+      title: '(deleted)',
+      filename: '',
+      project_id: null,
+      project_name: '',
+      total: summary.total,
+      unique_visitors: summary.unique_visitors,
+      share: sharePct(summary.total, orgTotal),
+      last_opened_at: lastOpenedAt(list),
+      countries: summary.countries,
+    });
+  });
+  rows.sort((a, b) => b.total - a.total || String(a.title).localeCompare(String(b.title)));
+  return { rows, brochure_count: (orgBrochures || []).length };
 }
 
 async function assertProjectOwned(supabase, orgId, projectId) {
@@ -878,8 +1150,9 @@ async function analyticsBrochure(reqLike, query) {
 async function analyticsOrg(reqLike, query) {
   const auth = await requireDeveloper(reqLike);
   if (auth.error) return auth.error;
+  const windowDays = parseWindowDays(query);
   const supabase = getSupabase();
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - 2 * windowDays * 24 * 60 * 60 * 1000).toISOString();
   let q = supabase
     .from('view_events')
     .select('brochure_id, project_id, country, visitor_day_hash, occurred_at')
@@ -893,23 +1166,37 @@ async function analyticsOrg(reqLike, query) {
   const { data: events, error } = await q;
   if (error) return safeServerError(error);
 
+  const { current, previous } = splitEventsByWindow(events || [], windowDays);
+  const summary = summarizeWithDelta(current, previous, windowDays);
+
   const byBrochure = new Map();
-  (events || []).forEach((e) => {
+  current.forEach((e) => {
     if (!e.brochure_id) return;
     if (!byBrochure.has(e.brochure_id)) byBrochure.set(e.brochure_id, []);
     byBrochure.get(e.brochure_id).push(e);
   });
 
+  const brochureRows = await buildBrochureAnalyticsRows(supabase, auth.org.id, byBrochure, summary.total);
+  if (brochureRows.error) return brochureRows.error;
+
+  const projectIds = [...new Set(current.map((e) => e.project_id).filter(Boolean))];
+  let by_project = [];
+  try {
+    const projectMap = await loadProjectMap(supabase, projectIds);
+    by_project = buildByProject(current, summary.total, projectMap);
+  } catch (projectError) {
+    return safeServerError(projectError);
+  }
+
   return {
     status: 200,
     body: {
-      window_days: 30,
+      window_days: windowDays,
       organization: { id: auth.org.id, name: auth.org.name, slug: auth.org.slug },
-      ...summarizeEvents(events || []),
-      by_brochure: [...byBrochure.entries()].map(([brochure_id, list]) => ({
-        brochure_id,
-        ...summarizeEvents(list),
-      })),
+      ...summary,
+      by_project,
+      brochure_count: brochureRows.brochure_count,
+      by_brochure: brochureRows.rows,
     },
   };
 }
@@ -917,8 +1204,9 @@ async function analyticsOrg(reqLike, query) {
 async function adminAnalytics(reqLike, query) {
   const admin = await requireAdmin(reqLike);
   if (admin.error) return admin.error;
+  const windowDays = parseWindowDays(query);
   const supabase = getSupabase();
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - 2 * windowDays * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: activeOrgs, error: orgError } = await supabase
     .from('organizations')
@@ -935,6 +1223,8 @@ async function adminAnalytics(reqLike, query) {
   if (error) return safeServerError(error);
 
   const activeEvents = (events || []).filter((e) => e.org_id && activeOrgIds.has(e.org_id));
+  const { current: platformCurrent, previous: platformPrevious } = splitEventsByWindow(activeEvents, windowDays);
+  const platformSummary = summarizeWithDelta(platformCurrent, platformPrevious, windowDays);
 
   const { data: brochures } = await supabase.from('brochures').select('id, org_id');
   const brochureCountByOrg = new Map();
@@ -944,7 +1234,7 @@ async function adminAnalytics(reqLike, query) {
   });
 
   const byOrg = new Map();
-  activeEvents.forEach((e) => {
+  platformCurrent.forEach((e) => {
     if (!byOrg.has(e.org_id)) byOrg.set(e.org_id, []);
     byOrg.get(e.org_id).push(e);
   });
@@ -956,74 +1246,49 @@ async function adminAnalytics(reqLike, query) {
     if (!activeOrgIds.has(idCheck.value)) {
       return publicError(404, 'Organization not found');
     }
-    const orgEvents = byOrg.get(idCheck.value) || [];
+    const orgAllEvents = (activeEvents || []).filter((e) => e.org_id === idCheck.value);
+    const { current: orgCurrent, previous: orgPrevious } = splitEventsByWindow(orgAllEvents, windowDays);
+    const orgSummary = summarizeWithDelta(orgCurrent, orgPrevious, windowDays);
+
     const byBrochure = new Map();
-    orgEvents.forEach((e) => {
+    orgCurrent.forEach((e) => {
       if (!e.brochure_id) return;
       if (!byBrochure.has(e.brochure_id)) byBrochure.set(e.brochure_id, []);
       byBrochure.get(e.brochure_id).push(e);
     });
 
-    const { data: orgBrochures, error: brochureError } = await supabase
-      .from('brochures')
-      .select('id, title, filename, slug, project_id')
-      .eq('org_id', idCheck.value);
-    if (brochureError) return safeServerError(brochureError);
+    const brochureRows = await buildBrochureAnalyticsRows(supabase, idCheck.value, byBrochure, orgSummary.total);
+    if (brochureRows.error) return brochureRows.error;
 
-    const projectIds = [...new Set((orgBrochures || []).map((b) => b.project_id).filter(Boolean))];
-    const projectMap = new Map();
-    if (projectIds.length) {
-      const { data: projects, error: projectError } = await supabase
-        .from('projects')
-        .select('id, name')
-        .in('id', projectIds);
-      if (projectError) return safeServerError(projectError);
-      (projects || []).forEach((p) => projectMap.set(p.id, p.name));
+    const projectIds = [...new Set(orgCurrent.map((e) => e.project_id).filter(Boolean))];
+    let by_project = [];
+    try {
+      const projectMap = await loadProjectMap(supabase, projectIds);
+      by_project = buildByProject(orgCurrent, orgSummary.total, projectMap);
+    } catch (projectError) {
+      return safeServerError(projectError);
     }
-
-    const seen = new Set();
-    const byBrochureRows = [];
-    (orgBrochures || []).forEach((b) => {
-      seen.add(b.id);
-      byBrochureRows.push({
-        brochure_id: b.id,
-        title: b.title || b.filename || 'Untitled',
-        filename: b.filename || '',
-        project_name: projectMap.get(b.project_id) || '',
-        ...summarizeEvents(byBrochure.get(b.id) || []),
-      });
-    });
-    byBrochure.forEach((list, brochureId) => {
-      if (seen.has(brochureId)) return;
-      byBrochureRows.push({
-        brochure_id: brochureId,
-        title: '(deleted)',
-        filename: '',
-        project_name: '',
-        ...summarizeEvents(list),
-      });
-    });
-    byBrochureRows.sort((a, b) => b.total - a.total || String(a.title).localeCompare(String(b.title)));
 
     detail = {
       org_id: idCheck.value,
       organization: orgMap.get(idCheck.value) || null,
-      brochure_count: (orgBrochures || []).length,
-      ...summarizeEvents(orgEvents),
-      by_brochure: byBrochureRows,
+      brochure_count: brochureRows.brochure_count,
+      ...orgSummary,
+      by_project,
+      by_brochure: brochureRows.rows,
     };
   }
 
   return {
     status: 200,
     body: {
-      window_days: 30,
-      ...summarizeEvents(activeEvents),
+      window_days: windowDays,
+      ...platformSummary,
       organizations: [...byOrg.entries()].map(([org_id, list]) => ({
         org_id,
         organization: orgMap.get(org_id) || null,
         brochure_count: brochureCountByOrg.get(org_id) || 0,
-        ...summarizeEvents(list),
+        ...summarizeEvents(list, windowDays),
       })).sort((a, b) => b.total - a.total),
       detail,
     },
@@ -1080,6 +1345,33 @@ async function removeBrochureStorage(supabase, orgId, brochureId, storagePath) {
   return true;
 }
 
+async function deleteBrochureForOrg(supabase, orgId, brochure) {
+  await removeBrochureStorage(supabase, orgId, brochure.id, brochure.storage_path);
+  const { error } = await supabase
+    .from('brochures')
+    .delete()
+    .eq('id', brochure.id)
+    .eq('org_id', orgId);
+  if (error) throw error;
+}
+
+async function adjustUsageMonthly(supabase, orgId, delta) {
+  if (!delta) return;
+  const ym = yearMonth();
+  const { data: usageRow } = await supabase
+    .from('usage_monthly')
+    .select('brochure_count')
+    .eq('org_id', orgId)
+    .eq('year_month', ym)
+    .maybeSingle();
+  if (!usageRow) return;
+  await supabase.from('usage_monthly').upsert({
+    org_id: orgId,
+    year_month: ym,
+    brochure_count: Math.max((usageRow.brochure_count || 0) + delta, 0),
+  });
+}
+
 async function brochuresDelete(reqLike, body) {
   const auth = await requireDeveloper(reqLike);
   if (auth.error) return auth.error;
@@ -1096,29 +1388,13 @@ async function brochuresDelete(reqLike, body) {
   if (lookupError) return safeServerError(lookupError);
   if (!brochure) return publicError(404, 'Brochure not found');
 
-  await removeBrochureStorage(supabase, auth.org.id, brochure.id, brochure.storage_path);
-
-  const { error: deleteError } = await supabase
-    .from('brochures')
-    .delete()
-    .eq('id', brochure.id)
-    .eq('org_id', auth.org.id);
-  if (deleteError) return safeServerError(deleteError);
-
-  const ym = yearMonth();
-  const { data: usageRow } = await supabase
-    .from('usage_monthly')
-    .select('brochure_count')
-    .eq('org_id', auth.org.id)
-    .eq('year_month', ym)
-    .maybeSingle();
-  if (usageRow) {
-    await supabase.from('usage_monthly').upsert({
-      org_id: auth.org.id,
-      year_month: ym,
-      brochure_count: Math.max((usageRow.brochure_count || 0) - 1, 0),
-    });
+  try {
+    await deleteBrochureForOrg(supabase, auth.org.id, brochure);
+  } catch (deleteError) {
+    return safeServerError(deleteError);
   }
+
+  await adjustUsageMonthly(supabase, auth.org.id, -1);
 
   let usage;
   try {
@@ -1187,6 +1463,7 @@ async function routeSaas(name, reqLike, body = {}, query = {}) {
     'projects-list',
     'projects-create',
     'projects-update',
+    'projects-delete',
     'upload-prepare',
     'upload-complete',
     'links-create',
@@ -1219,6 +1496,8 @@ async function routeSaas(name, reqLike, body = {}, query = {}) {
       return projectsCreate(reqLike, body);
     case 'projects-update':
       return projectsUpdate(reqLike, body);
+    case 'projects-delete':
+      return projectsDelete(reqLike, body);
     case 'upload-prepare':
       return uploadPrepare(reqLike, body);
     case 'upload-complete':
