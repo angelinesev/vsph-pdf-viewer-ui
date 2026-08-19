@@ -99,6 +99,7 @@ export default function App() {
                     orgAnalytics={orgAnalytics}
                     orgAnalyticsError={orgAnalyticsError}
                     onOpenProject={setCurrentProject}
+                    onQuotaChange={() => refreshQuota(token).catch((err) => setLoginError(err.message))}
                   />
                 )}
 
@@ -110,13 +111,17 @@ export default function App() {
                     orgAnalytics={orgAnalytics}
                     orgAnalyticsError={orgAnalyticsError}
                     onQuotaChange={() => refreshQuota(token).catch((err) => setLoginError(err.message))}
+                    onProjectDeleted={() => {
+                      setCurrentProject(null);
+                      refreshQuota(token).catch((err) => setLoginError(err.message));
+                    }}
                   />
                 )}
               </>
             )}
 
             {view === 'analytics' && (
-              <OrgAnalyticsView orgAnalytics={orgAnalytics} orgAnalyticsError={orgAnalyticsError} />
+              <OrgAnalyticsView token={token} orgAnalyticsError={orgAnalyticsError} />
             )}
 
             {view === 'settings' && (

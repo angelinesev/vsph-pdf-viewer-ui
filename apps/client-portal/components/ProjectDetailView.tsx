@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
+import { callApi } from '../../shared/api';
 import type { LinkResult, OrgAnalytics, Project, Quota } from '../types';
 import UploadForm from './UploadForm';
 import ShareResult from './ShareResult';
 import BrochureList, { type BrochureListHandle } from './BrochureList';
 import StatsRow from './StatsRow';
 import Modal from './Modal';
+import DeleteFolderModal from './DeleteFolderModal';
 import Icon from './Icon';
 
 interface ProjectDetailViewProps {
@@ -14,6 +16,7 @@ interface ProjectDetailViewProps {
   orgAnalytics: OrgAnalytics | null;
   orgAnalyticsError: boolean;
   onQuotaChange: () => void;
+  onProjectDeleted: () => void;
 }
 
 export default function ProjectDetailView({
@@ -23,27 +26,58 @@ export default function ProjectDetailView({
   orgAnalytics,
   orgAnalyticsError,
   onQuotaChange,
+  onProjectDeleted,
 }: ProjectDetailViewProps) {
   const [share, setShare] = useState<LinkResult | null>(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const brochureListRef = useRef<BrochureListHandle>(null);
+
+  const canDeleteFolder = project.slug !== 'uncategorized';
 
   function handleShare(link: LinkResult) {
     setError('');
     setShare(link);
   }
 
+  async function handleDeleteFolder() {
+    setDeleting(true);
+    setError('');
+    try {
+      await callApi('projects-delete', {
+        method: 'POST',
+        token,
+        body: { project_id: project.id },
+      });
+      setDeleteOpen(false);
+      onProjectDeleted();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
         <Icon name="auto_stories" />
-        <h2>Flipbooks</h2>
-        <button type="button" className="upload-btn" onClick={() => setUploadOpen(true)}>
-          <Icon name="add" />
-          Upload
-        </button>
+        <h2>{project.name}</h2>
+        <div className="page-header-actions">
+          {canDeleteFolder && (
+            <button type="button" className="secondary inline danger-outline" onClick={() => setDeleteOpen(true)}>
+              <Icon name="delete" />
+              Delete folder
+            </button>
+          )}
+          <button type="button" className="upload-btn" onClick={() => setUploadOpen(true)}>
+            <Icon name="add" />
+            Upload
+          </button>
+        </div>
       </div>
 
       <div className="search-bar">
@@ -95,6 +129,17 @@ export default function ProjectDetailView({
             }}
           />
         </Modal>
+      )}
+
+      {deleteOpen && (
+        <DeleteFolderModal
+          project={project}
+          deleting={deleting}
+          onClose={() => {
+            if (!deleting) setDeleteOpen(false);
+          }}
+          onConfirm={handleDeleteFolder}
+        />
       )}
     </div>
   );
