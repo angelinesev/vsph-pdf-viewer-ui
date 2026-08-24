@@ -14,5 +14,5 @@
     "noEmit": true,
     "resolveJsonModule": true
   },
-  "include": ["apps/client-portal", "apps/admin-src", "apps/shared/api.ts", "vite.config.ts", "vite.admin.config.ts"]
+  "include": ["apps/client-portal", "apps/admin-src", "apps/shared", "vite.config.ts", "vite.admin.config.ts"]
 }

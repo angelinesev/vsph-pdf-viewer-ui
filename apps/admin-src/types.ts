@@ -1,3 +1,23 @@
+import type {
+  CountryStat,
+  BrochureAnalyticsRow,
+  SeriesPoint,
+  AnalyticsDelta,
+  PeakDay,
+  WeekdayStat,
+  ProjectAnalyticsRow,
+} from '../shared/analytics';
+
+export type {
+  CountryStat,
+  BrochureAnalyticsRow,
+  SeriesPoint,
+  AnalyticsDelta,
+  PeakDay,
+  WeekdayStat,
+  ProjectAnalyticsRow,
+};
+
 export interface Plan {
   name: string;
   monthly_brochure_limit?: number | null;
@@ -29,12 +49,6 @@ export interface AccessCode {
   created_at: string;
 }
 
-export interface CountryStat {
-  country?: string;
-  country_name?: string;
-  count: number;
-}
-
 export interface OrgAnalyticsRow {
   org_id: string;
   organization?: { name?: string; slug?: string };
@@ -47,17 +61,16 @@ export interface OrgAnalyticsRow {
 export interface AnalyticsOverview {
   total?: number;
   unique_visitors?: number;
-  organizations?: OrgAnalyticsRow[];
-}
-
-export interface BrochureAnalyticsRow {
-  brochure_id?: string;
-  title?: string;
-  filename?: string;
-  project_name?: string;
-  total?: number;
-  unique_visitors?: number;
   countries?: CountryStat[];
+  series?: SeriesPoint[];
+  by_brochure?: BrochureAnalyticsRow[];
+  by_project?: ProjectAnalyticsRow[];
+  organizations?: OrgAnalyticsRow[];
+  window_days?: number;
+  delta?: AnalyticsDelta;
+  peak?: PeakDay | null;
+  opens_per_unique?: number;
+  weekday?: WeekdayStat[];
 }
 
 export interface OrgAnalyticsDetail {
@@ -67,4 +80,11 @@ export interface OrgAnalyticsDetail {
   brochure_count?: number;
   countries?: CountryStat[];
   by_brochure?: BrochureAnalyticsRow[];
+  by_project?: ProjectAnalyticsRow[];
+  series?: SeriesPoint[];
+  window_days?: number;
+  delta?: AnalyticsDelta;
+  peak?: PeakDay | null;
+  opens_per_unique?: number;
+  weekday?: WeekdayStat[];
 }

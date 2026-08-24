@@ -32,19 +32,7 @@ export function pct(used: number, limit: number | null | undefined): number {
   return Math.min(100, Math.round((used / limit) * 100));
 }
 
-export function countryLabel(entry: CountryStat | string | null | undefined): string {
-  if (!entry) return 'Unknown';
-  if (typeof entry === 'object' && entry.country_name && entry.country_name !== 'Unknown') {
-    return entry.country_name;
-  }
-  const code = typeof entry === 'object' ? entry.country : entry;
-  if (!code || code === 'XX') return 'Unknown';
-  try {
-    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) || code;
-  } catch {
-    return code;
-  }
-}
+export { countryLabel };
 
 export function embedSnippet(url: string): string {
   const src = String(url || '').replace(/"/g, '&quot;');
