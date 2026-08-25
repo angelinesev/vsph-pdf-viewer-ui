@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react';
-import Icon from './Icon';
-import { useLockBodyScroll } from '../utils';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import IconButton from '@mui/material/IconButton';
+import Box from '@mui/material/Box';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface ModalProps {
   title: string;
@@ -9,19 +13,15 @@ interface ModalProps {
 }
 
 export default function Modal({ title, onClose, children }: ModalProps) {
-  useLockBodyScroll();
-
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h2>{title}</h2>
-          <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
-            <Icon name="close" />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <Dialog open onClose={onClose} fullWidth maxWidth="xs">
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+        <Box component="span">{title}</Box>
+        <IconButton aria-label="Close" title="Close" size="small" onClick={onClose}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent>{children}</DialogContent>
+    </Dialog>
   );
 }

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { callApi } from '../../shared/api';
 import type { OrgAnalytics, Project, Quota } from '../types';
+import { useClickOutside } from '../utils';
 import StatsRow from './StatsRow';
 import DeleteFolderModal from './DeleteFolderModal';
 import Icon from './Icon';
@@ -28,6 +29,9 @@ export default function ProjectsView({
   const [loaded, setLoaded] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(menuRef, () => setOpenMenuId(null), openMenuId !== null);
 
   async function refreshProjects() {
     setError('');
@@ -82,14 +86,14 @@ export default function ProjectsView({
         </div>
         <p className="muted">Folders for estates / developments (e.g. Miravera). Upload brochures inside each project.</p>
         <div className="row">
-          <div>
+          <div className="project-name-field">
             <label>New project name</label>
             <input placeholder="Miravera" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
+          <button className="inline project-create-btn" type="button" onClick={handleCreate}>
+            Create project
+          </button>
         </div>
-        <button type="button" onClick={handleCreate}>
-          Create project
-        </button>
         <p className="err">{error}</p>
         <div className="plan-grid" style={{ marginTop: '1rem' }}>
           {loaded && projects.length === 0 && <div className="empty-state">No projects yet. Create one for your estate.</div>}
@@ -114,18 +118,35 @@ export default function ProjectsView({
                 </div>
               </button>
               {p.slug !== 'uncategorized' && (
-                <button
-                  type="button"
-                  className="folder-card-delete icon-btn icon-btn-danger"
-                  aria-label={`Delete folder ${p.name}`}
-                  title="Delete folder"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteTarget(p);
-                  }}
-                >
-                  <Icon name="delete" />
-                </button>
+                <div className="card-menu" ref={openMenuId === p.id ? menuRef : undefined}>
+                  <button
+                    type="button"
+                    className="icon-btn card-menu-trigger"
+                    aria-label={`More options for ${p.name}`}
+                    title="More options"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId(openMenuId === p.id ? null : p.id);
+                    }}
+                  >
+                    <Icon name="more_vert" />
+                  </button>
+                  {openMenuId === p.id && (
+                    <div className="card-menu-popup" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="card-menu-item card-menu-item-danger"
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          setDeleteTarget(p);
+                        }}
+                      >
+                        <Icon name="delete" />
+                        Move to trash
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))}

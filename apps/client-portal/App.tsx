@@ -8,11 +8,13 @@ import ProjectDetailView from './components/ProjectDetailView';
 import Sidebar, { type SidebarView } from './components/Sidebar';
 import OrgAnalyticsView from './components/OrgAnalyticsView';
 import SettingsView from './components/SettingsView';
+import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 
 const TOKEN_KEY = 'brochure_dev_token';
 
 export default function App() {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '');
+  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || '');
   const [loggedIn, setLoggedIn] = useState(false);
   const [headerSub, setHeaderSub] = useState('Projects & brochures');
   const [quota, setQuota] = useState<Quota | null>(null);
@@ -47,9 +49,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleLogin(newToken: string) {
+  function handleLogin(newToken: string, rememberMe: boolean) {
     setToken(newToken);
-    localStorage.setItem(TOKEN_KEY, newToken);
+    if (rememberMe) {
+      localStorage.setItem(TOKEN_KEY, newToken);
+    } else {
+      sessionStorage.setItem(TOKEN_KEY, newToken);
+    }
     setLoggedIn(true);
     setCurrentProject(null);
     setView('folders');
@@ -59,6 +65,7 @@ export default function App() {
   function handleLogout() {
     setToken('');
     localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
     setLoggedIn(false);
     setHeaderSub('Projects & brochures');
     setQuota(null);
@@ -68,10 +75,14 @@ export default function App() {
 
   if (!loggedIn) {
     return (
-      <div>
+      <Box>
         <LoginPanel onLogin={handleLogin} />
-        {loginError && <p className="err" style={{ textAlign: 'center' }}>{loginError}</p>}
-      </div>
+        {loginError && (
+          <Alert severity="error" sx={{ maxWidth: 420, mx: 'auto', mt: -6 }}>
+            {loginError}
+          </Alert>
+        )}
+      </Box>
     );
   }
 
@@ -79,7 +90,16 @@ export default function App() {
     <>
       <TopBar headerSub={headerSub} planName={quota?.plan.name || ''} />
 
-      <div className="app-shell">
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 3,
+          p: { xs: 2, sm: 2.5 },
+          pb: { xs: 6, sm: 5 },
+          minHeight: 'calc(100vh + 1px)',
+        }}
+      >
         <Sidebar
           active={view}
           onNavigate={(v) => {
@@ -88,48 +108,40 @@ export default function App() {
           }}
         />
 
-        <div className="wrap">
-          <main className="app-main">
-            {view === 'folders' && (
-              <>
-                {!currentProject && (
-                  <ProjectsView
-                    token={token}
-                    quota={quota}
-                    orgAnalytics={orgAnalytics}
-                    orgAnalyticsError={orgAnalyticsError}
-                    onOpenProject={setCurrentProject}
-                    onQuotaChange={() => refreshQuota(token).catch((err) => setLoginError(err.message))}
-                  />
-                )}
+        <Box sx={{ flex: 1, minWidth: 0, maxWidth: 1000, mx: 'auto' }}>
+          {view === 'folders' && (
+            <>
+              {!currentProject && (
+                <ProjectsView
+                  token={token}
+                  quota={quota}
+                  orgAnalytics={orgAnalytics}
+                  orgAnalyticsError={orgAnalyticsError}
+                  onOpenProject={setCurrentProject}
+                  onQuotaChange={() => refreshQuota(token).catch((err) => setLoginError(err.message))}
+                />
+              )}
 
-                {currentProject && (
-                  <ProjectDetailView
-                    token={token}
-                    project={currentProject}
-                    quota={quota}
-                    orgAnalytics={orgAnalytics}
-                    orgAnalyticsError={orgAnalyticsError}
-                    onQuotaChange={() => refreshQuota(token).catch((err) => setLoginError(err.message))}
-                    onProjectDeleted={() => {
-                      setCurrentProject(null);
-                      refreshQuota(token).catch((err) => setLoginError(err.message));
-                    }}
-                  />
-                )}
-              </>
-            )}
+              {currentProject && (
+                <ProjectDetailView
+                  token={token}
+                  project={currentProject}
+                  quota={quota}
+                  orgAnalytics={orgAnalytics}
+                  orgAnalyticsError={orgAnalyticsError}
+                  onQuotaChange={() => refreshQuota(token).catch((err) => setLoginError(err.message))}
+                />
+              )}
+            </>
+          )}
 
-            {view === 'analytics' && (
-              <OrgAnalyticsView token={token} orgAnalyticsError={orgAnalyticsError} />
-            )}
+          {view === 'analytics' && <OrgAnalyticsView token={token} orgAnalyticsError={orgAnalyticsError} />}
 
-            {view === 'settings' && (
-              <SettingsView orgName={headerSub} planName={quota?.plan.name || ''} onLogout={handleLogout} />
-            )}
-          </main>
-        </div>
-      </div>
+          {view === 'settings' && (
+            <SettingsView orgName={headerSub} planName={quota?.plan.name || ''} onLogout={handleLogout} />
+          )}
+        </Box>
+      </Box>
     </>
   );
 }

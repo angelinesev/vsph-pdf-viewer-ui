@@ -1,0 +1,60 @@
+/* portal.css (shared with admin-src, which still relies on its unscoped
+   bare-tag rules) styles native <button>/<input>/<select>/<textarea>/<label>
+   elements directly. MUI renders those same native elements under its own
+   classes, so portal.css's rules leak through wherever a MUI component
+   doesn't itself set every property portal.css touches. Scoping portal.css
+   would break admin-src, so instead this file — imported after portal.css —
+   cancels those specific properties back to sane defaults for anything
+   carrying a Mui* class, letting MUI's own styles apply cleanly. */
+
+/* portal.css's `button` rule sets a gradient background PLUS a blue
+   box-shadow "glow" at all times, and `button:hover:not(:disabled)` swaps in
+   a darker gradient and a translateY lift. That hover rule's specificity
+   (element + 2 pseudo-classes) is higher than MUI's own `&:hover` sx rules
+   (a single generated class + :hover), so on hover portal.css's rule was
+   winning back — showing a solid blue gradient + glow even where a
+   component's own hover style said otherwise. `:not(.Mui-disabled)` bumps
+   this selector's specificity past portal's hover rule so these properties
+   reliably stay cancelled in both the resting and hover states. */
+button.MuiButtonBase-root,
+button.MuiButtonBase-root:hover:not(.Mui-disabled) {
+  margin-top: 0;
+  background-image: none;
+  box-shadow: none;
+  transform: none;
+}
+
+/* portal.css's hover rule also resets background-COLOR to transparent (part
+   of its `background: linear-gradient(...)` shorthand), which the rule
+   above doesn't touch. For most buttons that's harmless (a lost hover tint),
+   but on contained/primary buttons it makes white button text vanish against
+   a transparent background. Restore it with a selector specific enough to
+   win outright, not just tie on source order. */
+button.MuiButtonBase-root.MuiButton-containedPrimary:hover:not(.Mui-disabled) {
+  background-color: #0250d1;
+}
+
+.MuiInputBase-input {
+  width: auto;
+  margin-top: 0;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  background: none;
+  transition: none;
+}
+
+.MuiInputBase-input:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: inherit;
+}
+
+label.MuiFormLabel-root,
+label.MuiInputLabel-root {
+  display: block;
+  font-size: inherit;
+  font-weight: inherit;
+  margin-top: 0;
+  color: inherit;
+}

@@ -1,0 +1,36 @@
+/* Self-hosted Inter (latin subset only, weights actually used by the app) —
+   avoids the Google Fonts CDN (blocked on some networks) and avoids bundling
+   the dozens of unicode-range subsets (cyrillic, greek, vietnamese, ...)
+   that @fontsource/inter's full CSS pulls in. */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('./inter-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('./inter-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('./inter-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('./inter-latin-700-normal.woff2') format('woff2');
+}
