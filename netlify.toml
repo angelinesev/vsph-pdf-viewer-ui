@@ -1,5 +1,5 @@
 [build]
-  command = "node scripts/write-portal-config.js && npm install"
+  command = "node scripts/write-portal-config.js && npm install && npm run build:ui && npm run build:admin"
   publish = "."
   functions = "netlify/functions"
   edge_functions = "netlify/edge-functions"

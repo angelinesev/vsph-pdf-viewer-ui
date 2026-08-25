@@ -1,3 +1,23 @@
+import type {
+  CountryStat,
+  BrochureAnalyticsRow,
+  SeriesPoint,
+  AnalyticsDelta,
+  PeakDay,
+  WeekdayStat,
+  ProjectAnalyticsRow,
+} from '../shared/analytics';
+
+export type {
+  CountryStat,
+  BrochureAnalyticsRow,
+  SeriesPoint,
+  AnalyticsDelta,
+  PeakDay,
+  WeekdayStat,
+  ProjectAnalyticsRow,
+};
+
 export interface Project {
   id: string;
   name: string;
@@ -26,12 +46,17 @@ export interface Quota {
 export interface OrgAnalytics {
   total?: number;
   unique_visitors?: number;
-}
-
-export interface CountryStat {
-  country?: string;
-  country_name?: string;
-  count: number;
+  brochure_count?: number;
+  window_days?: number;
+  countries?: CountryStat[];
+  by_brochure?: BrochureAnalyticsRow[];
+  by_project?: ProjectAnalyticsRow[];
+  series?: SeriesPoint[];
+  delta?: AnalyticsDelta;
+  peak?: PeakDay | null;
+  opens_per_unique?: number;
+  weekday?: WeekdayStat[];
+  organization?: { id?: string; name?: string; slug?: string };
 }
 
 export interface BrochureAnalytics {

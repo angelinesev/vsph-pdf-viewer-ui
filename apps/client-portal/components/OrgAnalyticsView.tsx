@@ -1,33 +1,65 @@
+import { useCallback, useEffect, useState } from 'react';
+import { callApi } from '../../shared/api';
+import type { AnalyticsRange } from '../../shared/analytics';
 import type { OrgAnalytics } from '../types';
+import AnalyticsDashboard from '../../shared/AnalyticsDashboard';
+import { exportAnalyticsPdf } from '../../shared/printAnalytics';
 
 interface OrgAnalyticsViewProps {
-  orgAnalytics: OrgAnalytics | null;
+  token: string;
   orgAnalyticsError: boolean;
 }
 
-export default function OrgAnalyticsView({ orgAnalytics, orgAnalyticsError }: OrgAnalyticsViewProps) {
+export default function OrgAnalyticsView({ token, orgAnalyticsError }: OrgAnalyticsViewProps) {
+  const [days, setDays] = useState<AnalyticsRange>(30);
+  const [data, setData] = useState<OrgAnalytics | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
+  const [exportError, setExportError] = useState('');
+
+  const loadAnalytics = useCallback(async (range: AnalyticsRange) => {
+    if (!token || orgAnalyticsError) return;
+    setLoading(true);
+    try {
+      const res = await callApi<OrgAnalytics>(`analytics-org?days=${range}`, { token });
+      setData(res);
+      setFetchError(false);
+    } catch {
+      setFetchError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, orgAnalyticsError]);
+
+  useEffect(() => {
+    loadAnalytics(days);
+  }, [days, loadAnalytics]);
+
+  function handleExport(opts: { days: number; countryFilter?: string | null }) {
+    if (!data) return;
+    setExportError('');
+    const popupError = exportAnalyticsPdf(data, opts.days, opts);
+    if (popupError) setExportError(popupError);
+  }
+
+  const errorMessage = orgAnalyticsError
+    ? 'Run analytics migration to enable.'
+    : fetchError
+      ? 'Could not load analytics.'
+      : undefined;
+
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Analytics</h2>
-      </div>
-      {orgAnalyticsError ? (
-        <p className="muted">Run analytics migration to enable.</p>
-      ) : (
-        <div className="stats-row">
-          <div className="stat-card">
-            <div className="stat-label">Opens (30d)</div>
-            <div className="stat-value">{orgAnalytics?.total ?? '—'}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Unique (approx)</div>
-            <div className="stat-value">{orgAnalytics?.unique_visitors ?? '—'}</div>
-          </div>
-        </div>
-      )}
-      <p className="muted" style={{ marginTop: '1rem' }}>
-        For per-brochure analytics, open a project in Folders and click Stats on a brochure.
-      </p>
-    </div>
+    <>
+      <AnalyticsDashboard
+        title="Analytics"
+        data={data}
+        loading={loading}
+        days={days}
+        onDaysChange={setDays}
+        error={errorMessage}
+        onExport={orgAnalyticsError ? undefined : handleExport}
+      />
+      {exportError && <p className="err">{exportError}</p>}
+    </>
   );
 }

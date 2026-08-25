@@ -1,29 +1,11 @@
-import type { CountryStat, Plan } from './types';
+import type { Plan } from './types';
+import { countryLabel, formatCountryStat } from '../shared/analytics';
 
 export function formatBytes(n: number | null | undefined): string {
   if (n == null) return 'Custom';
   const mb = n / (1024 * 1024);
   if (mb >= 1024) return (mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1) + ' GB';
   return (mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)) + ' MB';
-}
-
-export function countryLabel(entry: CountryStat | string | null | undefined): string {
-  if (!entry) return 'Unknown';
-  if (typeof entry === 'object' && entry.country_name && entry.country_name !== 'Unknown') {
-    return entry.country_name;
-  }
-  const code = typeof entry === 'object' ? entry.country : entry;
-  if (!code || code === 'XX') return 'Unknown';
-  try {
-    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) || code;
-  } catch {
-    return code;
-  }
-}
-
-export function formatCountryStat(entry: CountryStat | undefined | null): string {
-  if (!entry) return '—';
-  return `${countryLabel(entry)} (${entry.count})`;
 }
 
 export function brochureLimitLabel(p: Plan | number | null | undefined): string {
@@ -41,3 +23,5 @@ export function storageLimitOf(p: Plan | null | undefined): number | null {
   if (p.features?.max_storage_bytes != null) return Number(p.features.max_storage_bytes);
   return null;
 }
+
+export { countryLabel, formatCountryStat };
