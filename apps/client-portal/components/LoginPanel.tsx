@@ -29,7 +29,7 @@ export default function LoginPanel({ onLogin }: LoginPanelProps) {
     <div className="login-shell">
       <div className="login-card">
         <h1>Client sign in</h1>
-        <p className="lead">Use the access code provided by your admin.</p>
+        <p className="lead">Use the access code provided by your admin</p>
         <label htmlFor="code">Access codes</label>
         <input 
           id="code"

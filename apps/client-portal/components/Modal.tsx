@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Icon from './Icon';
+import { useLockBodyScroll } from '../utils';
 
 interface ModalProps {
   title: string;
@@ -8,6 +9,8 @@ interface ModalProps {
 }
 
 export default function Modal({ title, onClose, children }: ModalProps) {
+  useLockBodyScroll();
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>

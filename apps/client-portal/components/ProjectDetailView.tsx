@@ -117,18 +117,17 @@ export default function ProjectDetailView({
       </div>
 
       {uploadOpen && (
-        <Modal title="Upload PDF" onClose={() => setUploadOpen(false)}>
-          <UploadForm
-            token={token}
-            projectId={project.id}
-            onUploaded={handleShare}
-            onDone={() => {
-              onQuotaChange();
-              brochureListRef.current?.refresh();
-              setUploadOpen(false);
-            }}
-          />
-        </Modal>
+        <UploadForm
+          token={token}
+          projectId={project.id}
+          onClose={() => setUploadOpen(false)}
+          onUploaded={handleShare}
+          onDone={() => {
+            onQuotaChange();
+            brochureListRef.current?.refresh();
+            setUploadOpen(false);
+          }}
+        />
       )}
 
       {deleteOpen && (
