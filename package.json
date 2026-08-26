@@ -27,6 +27,10 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.11",
+    "@mui/material": "^7.3.11",
     "@supabase/supabase-js": "^2.49.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

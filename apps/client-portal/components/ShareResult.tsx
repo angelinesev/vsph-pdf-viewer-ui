@@ -1,34 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { embedSnippet } from '../utils';
-import Icon from './Icon';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import InputBase from '@mui/material/InputBase';
+import Divider from '@mui/material/Divider';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import LinkIcon from '@mui/icons-material/Link';
+import CodeIcon from '@mui/icons-material/Code';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckIcon from '@mui/icons-material/Check';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import LinkedInIcon from '@mui/icons-material/LinkedIn';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 
 interface ShareResultProps {
   vanityUrl: string;
   tokenUrl: string;
-}
-
-function FacebookIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z" />
-    </svg>
-  );
-}
-
-function LinkedInIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM8.34 18.34H5.67V9.75h2.67v8.59zM7 8.6c-.86 0-1.56-.7-1.56-1.56S6.14 5.48 7 5.48s1.56.7 1.56 1.56S7.86 8.6 7 8.6zm11.34 9.74h-2.67v-4.5c0-1.16-.42-1.95-1.45-1.95-.79 0-1.26.53-1.47 1.05-.08.18-.09.43-.09.68v4.72H9.99s.04-7.66 0-8.59h2.67v1.22c.36-.55 1-1.34 2.42-1.34 1.77 0 3.1 1.15 3.1 3.63v5.08z" />
-    </svg>
-  );
-}
-
-function WhatsAppIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.83 14.02c-.24.68-1.4 1.32-1.93 1.4-.5.08-1.13.11-1.82-.12-.42-.14-.96-.32-1.65-.62-2.9-1.25-4.79-4.17-4.93-4.36-.14-.19-1.18-1.56-1.18-2.98 0-1.41.74-2.11 1-2.4.26-.29.57-.36.76-.36h.55c.18 0 .41-.04.63.48.24.55.81 1.9.88 2.04.07.14.11.31.02.5-.09.19-.14.31-.28.47-.14.16-.29.36-.42.48-.14.14-.28.28-.12.55.16.28.7 1.16 1.51 1.88 1.04.93 1.91 1.22 2.19 1.36.28.14.44.12.6-.07.16-.19.68-.79.86-1.06.18-.28.36-.23.6-.14.24.09 1.55.73 1.81.86.26.14.44.19.5.3.06.11.06.65-.18 1.33z" />
-    </svg>
-  );
 }
 
 export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
@@ -60,60 +50,145 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${pretty}`)}`;
 
   return (
-    <div className="share-result">
-      <div className="share-field">
-        <label>
-          <Icon name="link" /> Link
-        </label>
-        <div className="link-pill">
-          <input readOnly value={pretty} />
-          <span className="link-pill-divider" aria-hidden="true" />
-          <button
-            type="button"
-            className={`link-pill-copy${copied === 'link' ? ' copied' : ''}`}
+    <Stack spacing={2.5}>
+      <Box>
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.75 }}>
+          <LinkIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+          <Typography variant="subtitle2" fontWeight={700}>
+            Link
+          </Typography>
+        </Stack>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.5}
+          sx={{ bgcolor: 'primary.light', borderRadius: 999, px: 2, py: 1 }}
+        >
+          <InputBase
+            readOnly
+            value={pretty}
+            sx={{ flex: 1, minWidth: 0, color: 'primary.main', fontWeight: 500 }}
+          />
+          <Divider orientation="vertical" flexItem sx={{ borderColor: 'primary.main', opacity: 0.25 }} />
+          <Button
             onClick={() => copy(pretty, 'link')}
+            startIcon={copied === 'link' ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+            sx={{ flexShrink: 0, color: copied === 'link' ? 'success.main' : 'primary.main' }}
           >
-            <Icon name={copied === 'link' ? 'check' : 'content_copy'} />
             {copied === 'link' ? 'Copied' : 'Copy link'}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Stack>
+      </Box>
 
-      <div className="share-field">
-        <label>
-          <Icon name="code" /> Embed
-        </label>
-        <div className="embed-box">
-          <code className="embed-code">{embed}</code>
-          <button
-            type="button"
-            className={`embed-copy-btn${copied === 'embed' ? ' copied' : ''}`}
+      <Box>
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.75 }}>
+          <CodeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+          <Typography variant="subtitle2" fontWeight={700}>
+            Embed
+          </Typography>
+        </Stack>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.5}
+          sx={{ bgcolor: 'background.default', borderRadius: 2, px: 2, py: 1.25 }}
+        >
+          <Box
+            component="code"
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+              fontSize: '0.78rem',
+              lineHeight: 1.5,
+              color: 'text.primary',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+            }}
+          >
+            {embed}
+          </Box>
+          <IconButton
             aria-label="Copy embed code"
             title="Copy embed code"
+            size="small"
             onClick={() => copy(embed, 'embed')}
+            sx={{ color: copied === 'embed' ? 'success.main' : 'text.secondary' }}
           >
-            <Icon name={copied === 'embed' ? 'check' : 'content_copy'} />
-          </button>
-        </div>
-      </div>
+            {copied === 'embed' ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+          </IconButton>
+        </Stack>
+      </Box>
 
-      <div className="share-field">
-        <label>Share to</label>
-        <div className="social-row">
-          <a className="social-btn email" href={mailHref} title="Email">
-            <Icon name="mail" />
-          </a>
-          <a className="social-btn linkedin" href={linkedinHref} target="_blank" rel="noopener noreferrer" title="LinkedIn">
-            <LinkedInIcon />
-          </a>
-          <a className="social-btn facebook" href={facebookHref} target="_blank" rel="noopener noreferrer" title="Facebook">
-            <FacebookIcon />
-          </a>
-          <a className="social-btn whatsapp" href={whatsappHref} target="_blank" rel="noopener noreferrer" title="WhatsApp">
-            <WhatsAppIcon />
-          </a>
-        </div>
-      </div>
-    </div>
+      <Box>
+        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.75 }}>
+          Share to
+        </Typography>
+        <Stack direction="row" spacing={1}>
+          <IconButton
+            component="a"
+            href={mailHref}
+            title="Email"
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2.5,
+              color: 'text.secondary',
+              '&:hover': { bgcolor: 'primary.main', color: '#fff', borderColor: 'transparent' },
+            }}
+          >
+            <MailOutlineIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            component="a"
+            href={linkedinHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="LinkedIn"
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2.5,
+              color: 'text.secondary',
+              '&:hover': { bgcolor: '#0a66c2', color: '#fff', borderColor: 'transparent' },
+            }}
+          >
+            <LinkedInIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            component="a"
+            href={facebookHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Facebook"
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2.5,
+              color: 'text.secondary',
+              '&:hover': { bgcolor: '#1877f2', color: '#fff', borderColor: 'transparent' },
+            }}
+          >
+            <FacebookIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            component="a"
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="WhatsApp"
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2.5,
+              color: 'text.secondary',
+              '&:hover': { bgcolor: '#25d366', color: '#fff', borderColor: 'transparent' },
+            }}
+          >
+            <WhatsAppIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      </Box>
+    </Stack>
   );
 }

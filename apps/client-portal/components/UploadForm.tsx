@@ -1,8 +1,23 @@
 import { useRef, useState } from 'react';
 import { callApi } from '../../shared/api';
 import type { LinkResult, UploadPrepared } from '../types';
-import { useLockBodyScroll } from '../utils';
-import Icon from './Icon';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import LinearProgress from '@mui/material/LinearProgress';
+import Alert from '@mui/material/Alert';
+import Zoom from '@mui/material/Zoom';
+import CloseIcon from '@mui/icons-material/Close';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 function putWithProgress(url: string, file: File, onProgress: (pct: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -44,7 +59,6 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  useLockBodyScroll();
 
   function pickFile(candidate: File | null | undefined) {
     setFile(candidate && candidate.type === 'application/pdf' ? candidate : null);
@@ -110,67 +124,66 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
   const locked = phase !== 'idle';
 
   return (
-    <div className="modal-backdrop" onClick={locked ? undefined : onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        {phase === 'idle' && (
-          <div className="modal-head">
-            <h2>Upload PDF</h2>
-            <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
-              <Icon name="close" />
-            </button>
-          </div>
-        )}
+    <Dialog open onClose={locked ? undefined : onClose} fullWidth maxWidth="xs">
+      {phase === 'idle' && (
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+          <Box component="span">Upload PDF</Box>
+          <IconButton aria-label="Close" title="Close" size="small" onClick={onClose}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+      )}
 
-        {phase === 'uploading' && (
-          <div className="upload-progress-body">
-            <span className="upload-progress-icon">
-              <Icon name="cloud_upload" />
-            </span>
-            <p>Uploading your file…</p>
-            <div className="upload-progress-bar">
-              <div className="upload-progress-bar-fill" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-        )}
+      {phase === 'uploading' && (
+        <DialogContent sx={{ textAlign: 'center', py: 5 }}>
+          <CloudUploadIcon color="primary" sx={{ fontSize: 52 }} />
+          <Typography sx={{ mt: 1.5, mb: 2 }} fontWeight={500}>
+            Uploading your file…
+          </Typography>
+          <LinearProgress variant="determinate" value={progress} sx={{ height: 6, borderRadius: 999 }} />
+        </DialogContent>
+      )}
 
-        {phase === 'done' && (
-          <div className="upload-progress-body">
-            <span className="upload-done-icon">
-              <Icon name="check" />
-            </span>
-            <p>Upload complete</p>
-          </div>
-        )}
+      {phase === 'done' && (
+        <DialogContent sx={{ textAlign: 'center', py: 5 }}>
+          <Zoom in>
+            <CheckCircleIcon color="success" sx={{ fontSize: 56 }} />
+          </Zoom>
+          <Typography sx={{ mt: 1.5 }} fontWeight={500}>
+            Upload complete
+          </Typography>
+        </DialogContent>
+      )}
 
-        {phase === 'idle' && (
-          <div>
-            <label>Title</label>
-            <input placeholder="Tower A brochure" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <label>Document type</label>
-            <div className="radio-pills">
-              <label>
-                <input
-                  type="radio"
-                  name="viewType"
-                  value="brochure"
-                  checked={viewType === 'brochure'}
-                  onChange={() => setViewType('brochure')}
-                />{' '}
-                Brochure
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="viewType"
-                  value="flyer"
-                  checked={viewType === 'flyer'}
-                  onChange={() => setViewType('flyer')}
-                />{' '}
-                Flyer
-              </label>
-            </div>
-            <div
-              className={`dropzone${dragOver ? ' dragover' : ''}`}
+      {phase === 'idle' && (
+        <DialogContent>
+          <Stack spacing={2}>
+            <TextField
+              label="Title"
+              placeholder="Tower A brochure"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              fullWidth
+            />
+            <Box>
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+                Document type
+              </Typography>
+              <ToggleButtonGroup
+                exclusive
+                value={viewType}
+                onChange={(_e, v) => v && setViewType(v)}
+                size="small"
+              >
+                <ToggleButton value="brochure" sx={{ borderRadius: 999, px: 2 }}>
+                  Brochure
+                </ToggleButton>
+                <ToggleButton value="flyer" sx={{ borderRadius: 999, px: 2 }}>
+                  Flyer
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+            <Box
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -182,12 +195,24 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
                 setDragOver(false);
                 pickFile(e.dataTransfer.files[0]);
               }}
+              sx={{
+                p: 3,
+                border: '2px dashed',
+                borderColor: dragOver ? 'primary.main' : 'divider',
+                borderRadius: 2,
+                textAlign: 'center',
+                cursor: 'pointer',
+                bgcolor: dragOver ? 'primary.light' : '#fafbfc',
+                transition: 'border-color 0.15s, background 0.15s',
+              }}
             >
-              <p>
+              <Typography variant="body2">
                 <strong>Choose a PDF</strong> or drag it here
-              </p>
-              <p className="muted">Max size follows your plan</p>
-            </div>
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Max size follows your plan
+              </Typography>
+            </Box>
             <input
               ref={fileInputRef}
               type="file"
@@ -195,14 +220,18 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
               hidden
               onChange={(e) => pickFile(e.target.files?.[0])}
             />
-            <p className="muted">{file ? file.name : ''}</p>
-            <button type="button" disabled={!file} onClick={handleUpload}>
+            {file && (
+              <Typography variant="body2" color="text.secondary">
+                {file.name}
+              </Typography>
+            )}
+            <Button variant="contained" size="large" disabled={!file} onClick={handleUpload}>
               Upload file
-            </button>
-            <p className="err">{error}</p>
-          </div>
-        )}
-      </div>
-    </div>
+            </Button>
+            {error && <Alert severity="error">{error}</Alert>}
+          </Stack>
+        </DialogContent>
+      )}
+    </Dialog>
   );
 }

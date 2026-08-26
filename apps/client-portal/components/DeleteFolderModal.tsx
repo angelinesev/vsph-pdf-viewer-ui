@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 import type { Project } from '../types';
-import Modal from './Modal';
 
 interface DeleteFolderModalProps {
   project: Project;
@@ -14,20 +18,22 @@ export default function DeleteFolderModal({ project, deleting, onClose, onConfir
   const brochureLabel = count === 1 ? 'brochure' : 'brochures';
 
   return (
-    <Modal title="Delete folder?" onClose={onClose}>
-      <p className="modal-body-text">
-        Delete <strong>{project.name}</strong>? This will permanently delete all{' '}
-        <strong>{count}</strong> {brochureLabel} inside this folder, including PDF files and share links.
-        This cannot be undone.
-      </p>
-      <div className="modal-actions">
-        <button type="button" className="secondary inline" onClick={onClose} disabled={deleting}>
+    <Dialog open onClose={deleting ? undefined : onClose} fullWidth maxWidth="xs">
+      <DialogTitle>Delete folder?</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          Delete <strong>{project.name}</strong>? This will permanently delete all <strong>{count}</strong>{' '}
+          {brochureLabel} inside this folder, including PDF files and share links. This cannot be undone.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button variant="outlined" color="inherit" onClick={onClose} disabled={deleting}>
           Cancel
-        </button>
-        <button type="button" className="danger inline" onClick={() => onConfirm()} disabled={deleting}>
+        </Button>
+        <Button variant="outlined" color="error" onClick={() => onConfirm()} disabled={deleting}>
           {deleting ? 'Deleting…' : 'Delete folder'}
-        </button>
-      </div>
-    </Modal>
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }

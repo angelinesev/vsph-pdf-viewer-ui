@@ -1302,7 +1302,7 @@ async function brochuresList(reqLike, query = {}) {
   const supabase = getSupabase();
   let q = supabase
     .from('brochures')
-    .select('id, filename, title, slug, view_type, size_bytes, created_at, project_id')
+    .select('id, filename, title, slug, view_type, size_bytes, created_at, project_id, storage_path')
     .eq('org_id', auth.org.id)
     .order('created_at', { ascending: false })
     .limit(200);
@@ -1317,9 +1317,19 @@ async function brochuresList(reqLike, query = {}) {
   const enriched = [];
   for (const b of data || []) {
     const urls = await vanityUrlsForBrochure(supabase, b, auth.org);
+    const { data: signedPdf } = await supabase.storage
+      .from(getStorageBucket())
+      .createSignedUrl(b.storage_path, 300);
     enriched.push({
-      ...b,
+      id: b.id,
+      filename: b.filename,
       title: b.title || b.filename,
+      slug: b.slug,
+      view_type: b.view_type,
+      size_bytes: b.size_bytes,
+      created_at: b.created_at,
+      project_id: b.project_id,
+      pdf_url: signedPdf?.signedUrl || null,
       vanity_url: urls.vanity,
     });
   }

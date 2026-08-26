@@ -25,7 +25,7 @@ export default defineConfig({
       output: {
         // Fixed filenames (no content hash) so rebuilds overwrite in place
         // instead of leaving orphaned hashed files at the repo root.
-        entryFileNames: 'client-portal.js',
+        entryFileNames: 'client-portal.bundle.js',
         chunkFileNames: 'client-portal-[name].js',
         assetFileNames: 'client-portal[extname]',
       },

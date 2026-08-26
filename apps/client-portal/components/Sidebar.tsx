@@ -1,4 +1,11 @@
-import Icon from './Icon';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import ButtonBase from '@mui/material/ButtonBase';
+import Typography from '@mui/material/Typography';
+import FolderIcon from '@mui/icons-material/Folder';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import SettingsIcon from '@mui/icons-material/Settings';
+import type { SvgIconComponent } from '@mui/icons-material';
 
 export type SidebarView = 'folders' | 'analytics' | 'settings';
 
@@ -7,33 +14,83 @@ interface SidebarProps {
   onNavigate: (view: SidebarView) => void;
 }
 
-const ICONS: Record<SidebarView, string> = {
-  folders: 'folder',
-  analytics: 'bar_chart',
-  settings: 'settings',
+const ICONS: Record<SidebarView, SvgIconComponent> = {
+  folders: FolderIcon,
+  analytics: BarChartIcon,
+  settings: SettingsIcon,
 };
 
 export default function Sidebar({ active, onNavigate }: SidebarProps) {
   function item(view: SidebarView, label: string) {
+    const IconComponent = ICONS[view];
+    const isActive = active === view;
     return (
-      <button
-        type="button"
-        className={`sidebar-item${active === view ? ' active' : ''}`}
+      <ButtonBase
         onClick={() => onNavigate(view)}
+        sx={{
+          flexDirection: 'column',
+          gap: 0.5,
+          width: '100%',
+          py: 1.35,
+          px: 1,
+          borderRadius: 2,
+          color: isActive ? 'primary.main' : 'text.secondary',
+          bgcolor: isActive ? 'primary.light' : 'transparent',
+          '&:hover': { bgcolor: isActive ? 'primary.light' : 'action.hover' },
+        }}
       >
-        <Icon name={ICONS[view]} />
-        <span>{label}</span>
-      </button>
+        <IconComponent fontSize="small" />
+        <Typography variant="caption" fontWeight={600}>
+          {label}
+        </Typography>
+      </ButtonBase>
     );
   }
 
   return (
-    <nav className="sidebar">
-      <div className="sidebar-group">
+    <Box
+      component="nav"
+      sx={{
+        width: 80,
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: 3,
+        minHeight: 'calc(100vh - 6rem - 2rem)',
+        p: 1,
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 2,
+        position: 'sticky',
+        top: '6rem',
+        alignSelf: 'flex-start',
+        '@media (max-width: 768px)': {
+          position: 'fixed',
+          top: 'auto',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 20,
+          width: '100%',
+          minHeight: 'auto',
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 1,
+          borderRadius: 0,
+          borderTop: '1px solid',
+          borderBottom: 0,
+          borderLeft: 0,
+          borderRight: 0,
+        },
+      }}
+    >
+      <Stack spacing={0.5} sx={{ '@media (max-width: 768px)': { flexDirection: 'row' } }}>
         {item('folders', 'Folders')}
         {item('analytics', 'Analytics')}
-      </div>
-      <div className="sidebar-group">{item('settings', 'Settings')}</div>
-    </nav>
+      </Stack>
+      <Stack sx={{ '@media (max-width: 768px)': { flexDirection: 'row' } }}>{item('settings', 'Settings')}</Stack>
+    </Box>
   );
 }
