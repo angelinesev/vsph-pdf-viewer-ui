@@ -12,7 +12,10 @@ export const theme = createTheme({
     success: { main: '#0f9f6e', light: '#ebfff5' },
     error: { main: '#dd3d56', light: '#fff1f3' },
     warning: { main: '#d97706', light: '#fff7ed' },
-    text: { primary: '#131416', secondary: '#6b7280' },
+    // secondary is darkened from a typical #6b7280 (~3.55:1 on white, fails
+    // WCAG AA) to #57606f (~6.35:1) so muted text/dates/axis labels stay
+    // legible without losing the cool gray tone.
+    text: { primary: '#131416', secondary: '#57606f' },
     divider: '#e5e5e5',
     background: { default: '#f7f7f7', paper: '#ffffff' },
   },

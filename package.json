@@ -31,6 +31,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.11",
     "@mui/material": "^7.3.11",
+    "@mui/x-charts": "^7.29.1",
     "@supabase/supabase-js": "^2.49.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
