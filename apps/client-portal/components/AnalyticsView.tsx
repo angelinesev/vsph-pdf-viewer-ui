@@ -200,6 +200,7 @@ export default function AnalyticsView({
           </ToggleButtonGroup>
           <Button
             variant="outlined"
+            disableElevation
             color="inherit"
             startIcon={<DownloadIcon fontSize="small" />}
             disabled={exportDisabled || !data || loading}
@@ -356,7 +357,7 @@ export default function AnalyticsView({
                 sx={{ mb: 1.5 }}
               />
             )}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '260px 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '260px 1fr' }, gap: 3, alignItems: 'start' }}>
               <Box sx={{ display: 'grid', placeItems: 'center' }}>
                 {countries.length === 0 ? (
                   <Typography color="text.secondary" sx={{ py: 4 }}>
@@ -376,11 +377,14 @@ export default function AnalyticsView({
                         outerRadius: 90,
                         paddingAngle: 3,
                         cornerRadius: 3,
+                        cx: 110,
+                        cy: 110,
                         valueFormatter: (item) => `${item.value} opens (${formatShare(item.value, total)})`,
                       },
                     ]}
                     height={220}
                     width={220}
+                    margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
                     slotProps={{ legend: { hidden: true } }}
                   />
                 )}

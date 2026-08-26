@@ -144,26 +144,12 @@ export default function LoginPanel({ onLogin }: LoginPanelProps) {
               }}
             />
           </Box>
-          {/* <FormControlLabel
-            control={
-              <Checkbox
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                size="small"
-              />
-            }
-            label={<Typography variant="body2">Remember me</Typography>}
-            sx={{ ml: -1 }}
-          /> */}
+          
           <Button
-            variant="contained"
+            variant="contained" disableElevation
             onClick={handleLogin}
             disabled={loggingIn}
             startIcon={loggingIn ? <CircularProgress size={16} color="inherit" /> : undefined}
-            sx={{
-              transform: 'none',
-              '&:hover': { transform: 'none' },
-            }}
           >
             {loggingIn ? 'Signing in…' : 'Sign in'}
           </Button>

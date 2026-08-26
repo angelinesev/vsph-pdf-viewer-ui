@@ -16,9 +16,20 @@
    component's own hover style said otherwise. `:not(.Mui-disabled)` bumps
    this selector's specificity past portal's hover rule so these properties
    reliably stay cancelled in both the resting and hover states. */
-button.MuiButtonBase-root,
-button.MuiButtonBase-root:hover:not(.Mui-disabled) {
+button.MuiButtonBase-root {
   margin-top: 0;
+  background-image: none;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Deliberately omits margin-top: portal.css never redeclares it in its
+   :hover rule, so the base selector above already keeps it cancelled in
+   every state. Repeating margin-top here (as this file used to) gave this
+   selector enough specificity to beat MUI Stack's own hover-independent
+   `spacing` margin specifically while hovering — collapsing a button's
+   top spacing to 0 and making it visibly jump the instant it's hovered. */
+button.MuiButtonBase-root:hover:not(.Mui-disabled) {
   background-image: none;
   box-shadow: none;
   transform: none;

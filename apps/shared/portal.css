@@ -163,7 +163,6 @@ button {
 
 button:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--accent-hover), var(--accent));
-  transform: translateY(-1px);
 }
 button.secondary {
   background: var(--surface);
@@ -1015,7 +1014,6 @@ button.danger-outline:hover:not(:disabled) {
 }
 
 .social-btn:hover {
-  transform: translateY(-1px);
   border-color: transparent;
   color: #fff;
 }

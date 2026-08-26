@@ -23,7 +23,7 @@ export default function SettingsView({ orgName, planName, onLogout }: SettingsVi
         <TextField label="Organization" value={orgName} disabled fullWidth />
         <TextField label="Plan" value={planName} disabled fullWidth />
       </Stack>
-      <Button variant="outlined" color="error" onClick={onLogout}>
+      <Button variant="outlined" disableElevation color="error" onClick={onLogout}>
         Sign out
       </Button>
     </Paper>

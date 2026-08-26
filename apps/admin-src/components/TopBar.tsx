@@ -48,7 +48,7 @@ export default function TopBar({ loggedIn, onLogout }: TopBarProps) {
         {loggedIn && (
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Chip label="Admin" color="primary" variant="outlined" size="small" />
-            <Button variant="outlined" color="inherit" size="small" onClick={onLogout}>
+            <Button variant="outlined" disableElevation color="inherit" size="small" onClick={onLogout}>
               Sign out
             </Button>
           </Stack>
