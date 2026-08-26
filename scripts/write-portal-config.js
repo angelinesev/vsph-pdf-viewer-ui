@@ -15,10 +15,7 @@ const root = path.join(__dirname, '..');
 const out = path.join(root, 'apps', 'shared', 'config.js');
 const localUiMode = process.env.LOCAL_UI_MODE === 'true' || process.env.LOCAL_UI_MODE === '1';
 
-const supabaseUrl =
-  process.env.SUPABASE_URL
-  || process.env.NEXT_PUBLIC_SUPABASE_URL
-  || (localUiMode ? 'https://example.supabase.co' : 'https://phftvaptlqibllkqcduf.supabase.co');
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
 const supabaseAnonKey =
   process.env.SUPABASE_ANON_KEY
@@ -35,19 +32,33 @@ if (publicBaseUrl.endsWith('/')) {
   publicBaseUrl = publicBaseUrl.slice(0, -1);
 }
 
-if (!supabaseAnonKey && !localUiMode) {
-  console.warn(
-    '[write-portal-config] SUPABASE_ANON_KEY missing - portals will not auth until set.',
-  );
+function fail(message) {
+  console.error(`[write-portal-config] ${message}`);
+  process.exit(1);
 }
 
-if (localUiMode) {
-  console.warn('[write-portal-config] LOCAL_UI_MODE enabled - using demo Supabase values for UX editing.');
+if (!localUiMode) {
+  if (!supabaseUrl) {
+    fail('SUPABASE_URL is required. Set it in .env for local builds or Netlify environment variables.');
+  }
+
+  if (!/^https:\/\/[^/]+\.supabase\.co(?:\/.*)?$/i.test(supabaseUrl)) {
+    fail(`SUPABASE_URL is not a valid HTTPS Supabase project URL: ${supabaseUrl}`);
+  }
+
+  if (!supabaseAnonKey) {
+    fail('SUPABASE_ANON_KEY is required for browser authentication.');
+  }
+
+  if (supabaseUrl.includes('example.supabase.co') || supabaseAnonKey === 'demo-anon-key') {
+    fail('Placeholder Supabase values are not allowed outside LOCAL_UI_MODE.');
+  }
+} else {
+  console.warn('[write-portal-config] LOCAL_UI_MODE enabled - using demo values for UI editing.');
 }
 
 if (!supabaseAnonKey && process.env.NETLIFY === 'true' && !localUiMode) {
-  console.error('[write-portal-config] SUPABASE_ANON_KEY is required on Netlify.');
-  process.exit(1);
+  fail('SUPABASE_ANON_KEY is required on Netlify.');
 }
 
 const contents = [

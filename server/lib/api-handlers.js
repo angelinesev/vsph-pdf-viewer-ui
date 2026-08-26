@@ -87,7 +87,7 @@ function notConfigured() {
 
 function getHealth() {
   const configured = isSupabaseConfigured();
-  const { url, keyType } = readSupabaseEnv();
+  const { url, key, keyType } = readSupabaseEnv();
 
   return {
     status: 200,
