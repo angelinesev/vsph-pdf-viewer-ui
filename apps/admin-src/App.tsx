@@ -9,6 +9,9 @@ import PlansGrid from './components/PlansGrid';
 import OrganizationsPanel from './components/OrganizationsPanel';
 import AccessCodePanel from './components/AccessCodePanel';
 import AnalyticsPanel from './components/AnalyticsPanel';
+import Sidebar, { type SidebarView } from './components/Sidebar';
+import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 
 const SESSION_KEY = 'brochure_admin_jwt';
 
@@ -28,6 +31,7 @@ export default function App() {
   const [scrollSignal, setScrollSignal] = useState(0);
   const [analyticsVersion, setAnalyticsVersion] = useState(0);
   const [adminError, setAdminError] = useState('');
+  const [view, setView] = useState<SidebarView>('overview');
 
   async function refresh(activeJwt: string) {
     setAdminError('');
@@ -63,6 +67,7 @@ export default function App() {
     setJwt(newJwt);
     localStorage.setItem(SESSION_KEY, newJwt);
     setLoggedIn(true);
+    setView('overview');
     refresh(newJwt).catch((err) => setAdminError(err.message));
   }
 
@@ -83,39 +88,63 @@ export default function App() {
     refresh(jwt).catch((err) => setAdminError(err.message));
   }
 
+  if (!loggedIn) {
+    return <LoginPanel supabase={supabase} onLogin={handleLogin} />;
+  }
+
   return (
-    <div className="wrap">
+    <>
       <TopBar loggedIn={loggedIn} onLogout={handleLogout} />
 
-      {!loggedIn && <LoginPanel supabase={supabase} onLogin={handleLogin} />}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 3,
+          p: { xs: 2, sm: 2.5 },
+          pb: { xs: 6, sm: 5 },
+          minHeight: 'calc(100vh + 1px)',
+        }}
+      >
+        <Sidebar active={view} onNavigate={setView} />
 
-      {loggedIn && (
-        <div>
-          <StatsOverview orgs={orgs} plan={plans[0]} />
-          <PlansGrid plans={plans} />
-          <OrganizationsPanel
-            jwt={jwt}
-            orgs={orgs}
-            archivedOrgs={archivedOrgs}
-            orgTab={orgTab}
-            onTabChange={setOrgTab}
-            onManageCode={handleManageCode}
-            onRefresh={() => refresh(jwt).catch((err) => setAdminError(err.message))}
-          />
-          {codeOrgId && (
-            <AccessCodePanel
-              jwt={jwt}
-              orgs={orgs}
-              selectedOrgId={codeOrgId}
-              onSelectOrg={setCodeOrgId}
-              onRevoked={handleRevoked}
-              scrollSignal={scrollSignal}
-            />
+        <Box sx={{ flex: 1, minWidth: 0, maxWidth: 1100, mx: 'auto' }}>
+          {view === 'overview' && (
+            <>
+              <StatsOverview orgs={orgs} plan={plans[0]} />
+              <PlansGrid plans={plans} />
+            </>
           )}
-          <AnalyticsPanel jwt={jwt} version={analyticsVersion} />
-          <p className="err">{adminError}</p>
-        </div>
-      )}
-    </div>
+
+          {view === 'organizations' && (
+            <>
+              <OrganizationsPanel
+                jwt={jwt}
+                orgs={orgs}
+                archivedOrgs={archivedOrgs}
+                orgTab={orgTab}
+                onTabChange={setOrgTab}
+                onManageCode={handleManageCode}
+                onRefresh={() => refresh(jwt).catch((err) => setAdminError(err.message))}
+              />
+              {codeOrgId && (
+                <AccessCodePanel
+                  jwt={jwt}
+                  orgs={orgs}
+                  selectedOrgId={codeOrgId}
+                  onSelectOrg={setCodeOrgId}
+                  onRevoked={handleRevoked}
+                  scrollSignal={scrollSignal}
+                />
+              )}
+            </>
+          )}
+
+          {view === 'analytics' && <AnalyticsPanel jwt={jwt} version={analyticsVersion} />}
+
+          {adminError && <Alert severity="error" sx={{ mt: 2 }}>{adminError}</Alert>}
+        </Box>
+      </Box>
+    </>
   );
 }

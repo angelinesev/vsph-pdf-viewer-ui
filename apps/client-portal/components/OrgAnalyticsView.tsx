@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { callApi } from '../../shared/api';
 import type { AnalyticsRange } from '../../shared/analytics';
 import type { OrgAnalytics } from '../types';
-import AnalyticsDashboard from '../../shared/AnalyticsDashboard';
+import AnalyticsView from './AnalyticsView';
 import { exportAnalyticsPdf } from '../../shared/printAnalytics';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
 
 interface OrgAnalyticsViewProps {
   token: string;
@@ -49,17 +51,21 @@ export default function OrgAnalyticsView({ token, orgAnalyticsError }: OrgAnalyt
       : undefined;
 
   return (
-    <>
-      <AnalyticsDashboard
-        title="Analytics"
+    <Box>
+      <AnalyticsView
         data={data}
         loading={loading}
+        error={errorMessage}
         days={days}
         onDaysChange={setDays}
-        error={errorMessage}
-        onExport={orgAnalyticsError ? undefined : handleExport}
+        onExport={handleExport}
+        exportDisabled={orgAnalyticsError}
       />
-      {exportError && <p className="err">{exportError}</p>}
-    </>
+      {exportError && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {exportError}
+        </Alert>
+      )}
+    </Box>
   );
 }

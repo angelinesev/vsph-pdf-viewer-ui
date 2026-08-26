@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:ui"],
       "port": 5173
+    },
+    {
+      "name": "dev:admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:admin"],
+      "port": 5174
     }
   ]
 }

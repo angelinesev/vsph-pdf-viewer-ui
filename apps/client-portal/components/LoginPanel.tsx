@@ -10,8 +10,6 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import CircularProgress from '@mui/material/CircularProgress';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
@@ -146,7 +144,7 @@ export default function LoginPanel({ onLogin }: LoginPanelProps) {
               }}
             />
           </Box>
-          <FormControlLabel
+          {/* <FormControlLabel
             control={
               <Checkbox
                 checked={rememberMe}
@@ -156,12 +154,16 @@ export default function LoginPanel({ onLogin }: LoginPanelProps) {
             }
             label={<Typography variant="body2">Remember me</Typography>}
             sx={{ ml: -1 }}
-          />
+          /> */}
           <Button
             variant="contained"
             onClick={handleLogin}
             disabled={loggingIn}
             startIcon={loggingIn ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={{
+              transform: 'none',
+              '&:hover': { transform: 'none' },
+            }}
           >
             {loggingIn ? 'Signing in…' : 'Sign in'}
           </Button>
