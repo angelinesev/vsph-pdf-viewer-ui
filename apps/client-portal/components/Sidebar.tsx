@@ -26,6 +26,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
     const isActive = active === view;
     return (
       <ButtonBase
+        data-tour={view === 'folders' ? 'tour-folders' : view === 'analytics' ? 'tour-analytics' : undefined}
         onClick={() => onNavigate(view)}
         sx={{
           flexDirection: 'column',

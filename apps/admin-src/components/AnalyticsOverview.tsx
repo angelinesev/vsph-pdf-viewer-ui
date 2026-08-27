@@ -149,7 +149,7 @@ export default function AnalyticsOverview({
 
   return (
     <Stack spacing={2}>
-      <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
         <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.5}>
           <Box sx={{ mr: 'auto' }}>
             <Typography variant="h6" fontWeight={700}>
@@ -181,7 +181,7 @@ export default function AnalyticsOverview({
       {!error && (
         <>
           {/* KPI Overview Card */}
-          <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+          <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
             {!data ? (
               <Stack direction="row" spacing={4} flexWrap="wrap">
                 {[0, 1, 2, 3, 4].map((i) => (
@@ -219,7 +219,7 @@ export default function AnalyticsOverview({
           </Paper>
 
           {/* Traffic Trends Card */}
-          <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+          <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
             <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.5} sx={{ mb: 1 }}>
               <Typography variant="subtitle1" fontWeight={700} sx={{ mr: 'auto' }}>
                 Traffic over time
@@ -308,7 +308,7 @@ export default function AnalyticsOverview({
           </Paper>
 
           {/* Geographic Breakdown Card */}
-          <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+          <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
             <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
               Geographic breakdown
             </Typography>
@@ -394,7 +394,7 @@ export default function AnalyticsOverview({
           </Paper>
 
           {/* Organizations Ranked Card */}
-          <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+          <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
             <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.5} sx={{ mb: 1.5 }}>
               <Typography variant="subtitle1" fontWeight={700} sx={{ mr: 'auto' }}>
                 Organizations ranked by opens

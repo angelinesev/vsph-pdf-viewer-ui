@@ -131,6 +131,8 @@ export default function AnalyticsView({
   const [brochureSort, setBrochureSort] = useState<BrochureSort>('opens');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(8);
+  const [countryPage, setCountryPage] = useState(0);
+  const COUNTRY_ROWS_PER_PAGE = 5;
 
   const total = data?.total || 0;
   const countries = data?.countries || [];
@@ -171,6 +173,8 @@ export default function AnalyticsView({
 
   const filteredTotal = filteredBrochures.reduce((sum, r) => sum + (r.total || 0), 0);
   const pageBrochures = filteredBrochures.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const pageCountries = countries.slice(countryPage * COUNTRY_ROWS_PER_PAGE, countryPage * COUNTRY_ROWS_PER_PAGE + COUNTRY_ROWS_PER_PAGE);
 
   function handleCountrySelect(code: string | null) {
     setSelectedCountry((cur) => (cur === code ? null : code));
@@ -422,7 +426,7 @@ export default function AnalyticsView({
                         </TableCell>
                       </TableRow>
                     )}
-                    {countries.map((c, i) => {
+                    {pageCountries.map((c, i) => {
                       const pct = c.share ?? (total ? (c.count / total) * 100 : 0);
                       const active = selectedCountry === c.country;
                       return (
@@ -432,7 +436,7 @@ export default function AnalyticsView({
                           onClick={() => handleCountrySelect(c.country || null)}
                           sx={{ cursor: 'pointer', bgcolor: active ? 'primary.light' : undefined }}
                         >
-                          <TableCell>{i + 1}</TableCell>
+                          <TableCell>{countryPage * COUNTRY_ROWS_PER_PAGE + i + 1}</TableCell>
                           <TableCell>{countryLabel(c)}</TableCell>
                           <TableCell align="right">{c.count}</TableCell>
                           <TableCell>
@@ -452,6 +456,17 @@ export default function AnalyticsView({
                     })}
                   </TableBody>
                 </Table>
+                {countries.length > 0 && (
+                  <TablePagination
+                    component="div"
+                    count={countries.length}
+                    page={countryPage}
+                    onPageChange={(_e, newPage) => setCountryPage(newPage)}
+                    rowsPerPage={COUNTRY_ROWS_PER_PAGE}
+                    rowsPerPageOptions={[COUNTRY_ROWS_PER_PAGE]}
+                    labelDisplayedRows={({ from, to, count }) => `Showing ${from}–${to} of ${count} countries`}
+                  />
+                )}
               </TableContainer>
             </Box>
           </Paper>

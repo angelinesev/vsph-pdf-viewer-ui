@@ -255,7 +255,12 @@ export default function AccessDrawer({ jwt, org, open, onClose, onArchived, focu
                       <Typography variant="body2" color="text.secondary" sx={{ width: 90 }}>
                         Created
                       </Typography>
-                      <Typography variant="body2">{new Date(activeCode.created_at).toLocaleString()}</Typography>
+                      <Typography variant="body2">
+                        {new Date(activeCode.created_at).toLocaleString(undefined, {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        })}
+                      </Typography>
                     </Stack>
                   </Stack>
                   <Divider sx={{ mb: 2 }} />

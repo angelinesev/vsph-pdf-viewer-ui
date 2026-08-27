@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 124" role="img" aria-labelledby="title desc">
+  <title id="title">Visual Studios</title>
+  <desc id="desc">Visual Studios wordmark</desc>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="142" font-weight="700" letter-spacing="-5">
+    <text x="0" y="108" fill="#12375f">VIRTUAL</text>
+    <text x="598" y="108" fill="#858585" font-weight="400">STUDI</text>
+    <text x="1074" y="108" fill="#858585" font-weight="400">S</text>
+  </g>
+  <g transform="translate(1004 0)">
+    <path d="M0 4h56v116H0z" fill="#ffd400"/>
+    <path d="M64 0h18v124H64z" fill="#f0c400"/>
+    <path d="M43 59h7v10h-7z" fill="#12375f"/>
+  </g>
+</svg>

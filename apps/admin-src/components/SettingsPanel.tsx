@@ -21,7 +21,7 @@ export default function SettingsPanel({ plans, onLogout, loading }: SettingsPane
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
       <Typography variant="h6" fontWeight={700} sx={{ mb: 1.5 }}>
         Settings
       </Typography>
@@ -29,10 +29,11 @@ export default function SettingsPanel({ plans, onLogout, loading }: SettingsPane
         Plan details for this account, and session controls.
       </Typography>
       <PlansGrid plans={plans} loading={loading} />
+      <br></br>
       <Button
         variant="outlined"
         disableElevation
-        color="error"
+        color="error" 
         startIcon={<LogoutIcon fontSize="small" />}
         onClick={() => setConfirmOpen(true)}
         sx={{ mt: 3 }}

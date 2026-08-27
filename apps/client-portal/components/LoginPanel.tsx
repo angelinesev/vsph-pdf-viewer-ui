@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { callApi } from '../../shared/api';
+import logoUrl from '../../shared/VS-Logo.png';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -75,36 +76,34 @@ export default function LoginPanel({ onLogin }: LoginPanelProps) {
           boxShadow: '0 5px 15px rgba(9, 11, 17, 0.05), 0 15px 35px -5px rgba(19, 23, 32, 0.05)',
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+        <Stack direction="row" alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
           <Box
+            component="img"
+            src={logoUrl}
+            alt="Visual Studios"
             sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
-              display: 'grid',
-              placeItems: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              bgcolor: 'primary.main',
-              flexShrink: 0,
+              display: 'block',
+              width: 'min(100%, 230px)',
+              height: 'auto',
             }}
-          >
-            V
-          </Box>
-          <Typography variant="subtitle1" fontWeight={700} color="primary.main">
-            Client portal
-          </Typography>
+          />
         </Stack>
 
-        <Typography variant="h4" fontWeight={600} gutterBottom>
+        <Typography variant="h4" fontWeight={600} paddingTop={2} textAlign="center" gutterBottom>
           Sign in
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>
           Use the access code provided by your admin
         </Typography>
 
-        <Stack spacing={2}>
+        <Stack
+          component="form"
+          spacing={2}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleLogin();
+          }}
+        >
           <Box>
             <FieldLabel htmlFor="code">Access codes</FieldLabel>
             <TextField
@@ -156,9 +155,9 @@ export default function LoginPanel({ onLogin }: LoginPanelProps) {
             sx={{ ml: -1 }}
           /> */}
           <Button
+            type="submit"
             variant="contained"
             disableElevation
-            onClick={handleLogin}
             disabled={loggingIn}
             startIcon={loggingIn ? <CircularProgress size={16} color="inherit" /> : undefined}
             sx={{

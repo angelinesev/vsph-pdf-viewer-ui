@@ -88,9 +88,9 @@ export default function ProjectsView({
         <div className="row">
           <div className="project-name-field">
             <label>New project name</label>
-            <input placeholder="Miravera" value={name} onChange={(e) => setName(e.target.value)} />
+            <input placeholder="Enter Project Name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <button className="inline project-create-btn" type="button" onClick={handleCreate}>
+          <button className="inline project-create-btn" type="button" data-tour="tour-create-project" onClick={handleCreate}>
             Create project
           </button>
         </div>

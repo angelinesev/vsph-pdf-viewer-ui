@@ -16,6 +16,11 @@ export function brochureLimitLabel(p: Plan | number | null | undefined): string 
   return p == null ? 'Unlimited' : String(p);
 }
 
+export function pct(used: number, limit: number | null | undefined): number {
+  if (limit == null || limit <= 0) return 0;
+  return Math.min(100, Math.round((used / limit) * 100));
+}
+
 export function storageLimitOf(p: Plan | null | undefined): number | null {
   if (!p) return null;
   if (p.max_storage_bytes != null) return p.max_storage_bytes;

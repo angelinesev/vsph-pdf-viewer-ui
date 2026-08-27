@@ -21,7 +21,7 @@ const ICONS: Record<SidebarView, SvgIconComponent> = {
 };
 
 const LABELS: Record<SidebarView, string> = {
-  organizations: 'Organizations',
+  organizations: 'Dashboard',
   analytics: 'Analytics',
   settings: 'Settings',
 };

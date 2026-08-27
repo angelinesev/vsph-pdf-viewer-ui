@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { callApi } from '../../shared/api';
+import logoUrl from '../../shared/VS-Logo.png';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -8,11 +9,10 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
-import Link from '@mui/material/Link';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 interface LoginPanelProps {
   supabase: SupabaseClient;
@@ -37,15 +37,12 @@ function FieldLabel({ htmlFor, children }: { htmlFor: string; children: ReactNod
 export default function LoginPanel({ supabase, onLogin }: LoginPanelProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [bootstrapSecret, setBootstrapSecret] = useState('');
   const [error, setError] = useState('');
-  const [ok, setOk] = useState('');
   const [signingIn, setSigningIn] = useState(false);
-  const [bootstrapping, setBootstrapping] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleLogin() {
     setError('');
-    setOk('');
     setSigningIn(true);
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (authError) {
@@ -58,25 +55,8 @@ export default function LoginPanel({ supabase, onLogin }: LoginPanelProps) {
       await callApi('admin-me', { adminJwt: jwt });
       onLogin(jwt);
     } catch (err: any) {
-      setError(err.message + ' — use Bootstrap or add user to platform_admins.');
+      setError(err.message + ' — contact an existing admin to be added to platform_admins.');
       setSigningIn(false);
-    }
-  }
-
-  async function handleBootstrap() {
-    setError('');
-    setOk('');
-    setBootstrapping(true);
-    try {
-      await callApi('admin-bootstrap', {
-        method: 'POST',
-        body: { email: email.trim(), password, bootstrap_secret: bootstrapSecret },
-      });
-      setOk('Admin created. Click Sign in.');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setBootstrapping(false);
     }
   }
 
@@ -100,100 +80,80 @@ export default function LoginPanel({ supabase, onLogin }: LoginPanelProps) {
           boxShadow: '0 5px 15px rgba(9, 11, 17, 0.05), 0 15px 35px -5px rgba(19, 23, 32, 0.05)',
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+        <Stack direction="row" alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
           <Box
+            component="img"
+            src={logoUrl}
+            alt="Visual Studios"
             sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
-              display: 'grid',
-              placeItems: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              bgcolor: 'primary.main',
-              flexShrink: 0,
+              display: 'block',
+              width: 'min(100%, 230px)',
+              height: 'auto',
             }}
-          >
-            V
-          </Box>
-          <Typography variant="subtitle1" fontWeight={700} color="primary.main">
-            Admin portal
-          </Typography>
+          />
         </Stack>
 
-        <Typography variant="h4" fontWeight={600} gutterBottom>
+        <Typography variant="h4" fontWeight={600} textAlign="center" gutterBottom>
           Sign in
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>
           Manage the VSPH plan, organizations, and client access codes.
         </Typography>
 
-        <Stack spacing={2}>
-          <Box>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
-            <TextField
-              id="email"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              fullWidth
-            />
-          </Box>
-          <Box>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
-            <TextField
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              fullWidth
-            />
-          </Box>
-          <Button variant="contained" disableElevation onClick={handleLogin} disabled={signingIn}>
-            {signingIn ? 'Signing in…' : 'Sign in'}
-          </Button>
+        <Box
+          component="form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleLogin();
+          }}
+        >
+          <Stack spacing={2}>
+            <Box>
+              <FieldLabel htmlFor="email">Email</FieldLabel>
+              <TextField
+                id="email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                fullWidth
+              />
+            </Box>
+            <Box>
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <TextField
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                fullWidth
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          title={showPassword ? 'Hide password' : 'Show password'}
+                          onClick={() => setShowPassword((v) => !v)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            </Box>
+            <Button type="submit" variant="contained" disableElevation disabled={signingIn}>
+              {signingIn ? 'Signing in…' : 'Sign in'}
+            </Button>
 
-          {(error || ok) && <Alert severity={ok ? 'success' : 'error'}>{ok || error}</Alert>}
-
-          <Accordion
-            disableGutters
-            elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px !important', '&::before': { display: 'none' } }}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="body2" fontWeight={500}>
-                First-time setup
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <Box>
-                  <FieldLabel htmlFor="bootstrapSecret">Bootstrap secret</FieldLabel>
-                  <TextField
-                    id="bootstrapSecret"
-                    type="password"
-                    placeholder="BOOTSTRAP_SECRET"
-                    value={bootstrapSecret}
-                    onChange={(e) => setBootstrapSecret(e.target.value)}
-                    fullWidth
-                  />
-                </Box>
-                <Button variant="outlined" disableElevation color="inherit" onClick={handleBootstrap} disabled={bootstrapping}>
-                  {bootstrapping ? 'Creating…' : 'Create first admin'}
-                </Button>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-            <Link href="/" underline="hover">
-              Back to home
-            </Link>
-          </Typography>
-        </Stack>
+            {error && <Alert severity="error">{error}</Alert>}
+          </Stack>
+        </Box>
       </Paper>
     </Box>
   );

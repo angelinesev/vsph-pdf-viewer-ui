@@ -221,9 +221,22 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
               onChange={(e) => pickFile(e.target.files?.[0])}
             />
             {file && (
-              <Typography variant="body2" color="text.secondary">
-                {file.name}
-              </Typography>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }} noWrap>
+                  {file.name}
+                </Typography>
+                <IconButton
+                  aria-label="Remove file"
+                  title="Remove file"
+                  size="small"
+                  onClick={() => {
+                    pickFile(null);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Stack>
             )}
             <Button variant="contained" disableElevation disabled={!file} onClick={handleUpload}>
               Upload file
