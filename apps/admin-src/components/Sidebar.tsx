@@ -2,12 +2,12 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import ButtonBase from '@mui/material/ButtonBase';
 import Typography from '@mui/material/Typography';
-import DashboardIcon from '@mui/icons-material/Dashboard';
 import CorporateFareIcon from '@mui/icons-material/CorporateFare';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import SettingsIcon from '@mui/icons-material/Settings';
 import type { SvgIconComponent } from '@mui/icons-material';
 
-export type SidebarView = 'overview' | 'organizations' | 'analytics';
+export type SidebarView = 'organizations' | 'analytics' | 'settings';
 
 interface SidebarProps {
   active: SidebarView;
@@ -15,15 +15,15 @@ interface SidebarProps {
 }
 
 const ICONS: Record<SidebarView, SvgIconComponent> = {
-  overview: DashboardIcon,
   organizations: CorporateFareIcon,
   analytics: BarChartIcon,
+  settings: SettingsIcon,
 };
 
 const LABELS: Record<SidebarView, string> = {
-  overview: 'Overview',
   organizations: 'Organizations',
   analytics: 'Analytics',
+  settings: 'Settings',
 };
 
 export default function Sidebar({ active, onNavigate }: SidebarProps) {
@@ -47,7 +47,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
         }}
       >
         <IconComponent fontSize="small" />
-        <Typography variant="caption" fontWeight={600}>
+        <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.625rem' }}>
           {LABELS[view]}
         </Typography>
       </ButtonBase>
@@ -62,6 +62,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
+        justifyContent: 'space-between',
         gap: 3,
         minHeight: 'calc(100vh - 6rem - 2rem)',
         p: 1,
@@ -93,8 +94,9 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
       }}
     >
       <Stack spacing={0.5} sx={{ '@media (max-width: 768px)': { flexDirection: 'row' } }}>
-        {(['overview', 'organizations', 'analytics'] as SidebarView[]).map(item)}
+        {(['organizations', 'analytics'] as SidebarView[]).map(item)}
       </Stack>
+      <Stack sx={{ '@media (max-width: 768px)': { flexDirection: 'row' } }}>{item('settings')}</Stack>
     </Box>
   );
 }

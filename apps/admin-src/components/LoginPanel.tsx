@@ -152,7 +152,7 @@ export default function LoginPanel({ supabase, onLogin }: LoginPanelProps) {
               fullWidth
             />
           </Box>
-          <Button variant="contained" onClick={handleLogin} disabled={signingIn}>
+          <Button variant="contained" disableElevation onClick={handleLogin} disabled={signingIn}>
             {signingIn ? 'Signing in…' : 'Sign in'}
           </Button>
 
@@ -181,7 +181,7 @@ export default function LoginPanel({ supabase, onLogin }: LoginPanelProps) {
                     fullWidth
                   />
                 </Box>
-                <Button variant="outlined" color="inherit" onClick={handleBootstrap} disabled={bootstrapping}>
+                <Button variant="outlined" disableElevation color="inherit" onClick={handleBootstrap} disabled={bootstrapping}>
                   {bootstrapping ? 'Creating…' : 'Create first admin'}
                 </Button>
               </Stack>

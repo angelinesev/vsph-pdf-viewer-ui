@@ -25,3 +25,13 @@ export function storageLimitOf(p: Plan | null | undefined): number | null {
 }
 
 export { countryLabel, formatCountryStat };
+
+// Mirrors server/lib/projects-analytics.js's slugify — used only to preview
+// the slug as the admin types; the server re-slugifies/uniquifies for real.
+export function slugify(input: string): string {
+  return String(input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+}

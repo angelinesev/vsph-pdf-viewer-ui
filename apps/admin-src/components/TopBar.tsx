@@ -4,14 +4,12 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
-import Button from '@mui/material/Button';
 
 interface TopBarProps {
   loggedIn: boolean;
-  onLogout: () => void;
 }
 
-export default function TopBar({ loggedIn, onLogout }: TopBarProps) {
+export default function TopBar({ loggedIn }: TopBarProps) {
   return (
     <AppBar
       position="sticky"
@@ -45,14 +43,7 @@ export default function TopBar({ loggedIn, onLogout }: TopBarProps) {
             </Typography>
           </Box>
         </Stack>
-        {loggedIn && (
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Chip label="Admin" color="primary" variant="outlined" size="small" />
-            <Button variant="outlined" color="inherit" size="small" onClick={onLogout}>
-              Sign out
-            </Button>
-          </Stack>
-        )}
+        {loggedIn && <Chip label="Admin" color="primary" variant="outlined" size="small" />}
       </Toolbar>
     </AppBar>
   );

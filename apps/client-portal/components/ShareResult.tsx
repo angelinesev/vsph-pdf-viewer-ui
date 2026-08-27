@@ -71,6 +71,7 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
           />
           <Divider orientation="vertical" flexItem sx={{ borderColor: 'primary.main', opacity: 0.25 }} />
           <Button
+            disableElevation
             onClick={() => copy(pretty, 'link')}
             startIcon={copied === 'link' ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
             sx={{ flexShrink: 0, color: copied === 'link' ? 'success.main' : 'primary.main' }}

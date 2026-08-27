@@ -8,58 +8,50 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
-import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import Alert from '@mui/material/Alert';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
-import MenuItem from '@mui/material/MenuItem';
 import Table from '@mui/material/Table';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
-import TablePagination from '@mui/material/TablePagination';
 import LinearProgress from '@mui/material/LinearProgress';
-import Tooltip from '@mui/material/Tooltip';
 import Skeleton from '@mui/material/Skeleton';
 import DownloadIcon from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
-import PublicIcon from '@mui/icons-material/Public';
-import type { AnalyticsPayload, AnalyticsRange, BrochureAnalyticsRow, ChartGranularity } from '../../shared/analytics';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import type { AnalyticsRange, ChartGranularity } from '../../shared/analytics';
 import {
   ANALYTICS_RANGES,
   buildChartSeries,
-  brochureMatchesCountry,
   countryLabel,
   formatDayLabel,
   formatDelta,
-  formatLastOpened,
   formatSeriesLabel,
   formatShare,
 } from '../../shared/analytics';
+import type { AnalyticsOverview, OrgAnalyticsRow } from '../types';
+import { formatCountryStat } from '../utils';
 
 type ChartMetric = 'opens' | 'unique';
-type BrochureSort = 'opens' | 'last_opened';
 
 const CHART_COLORS = ['#0362fc', '#5b8def', '#8fb8ff', '#0f9f6e', '#d97706', '#dd3d56', '#57606f'];
 
-interface AnalyticsViewProps {
-  data: AnalyticsPayload | null;
+interface AnalyticsOverviewProps {
+  data: AnalyticsOverview | null;
   loading?: boolean;
   error?: string;
   days: AnalyticsRange;
   onDaysChange: (days: AnalyticsRange) => void;
-  onExport: (opts: { days: number; countryFilter?: string | null }) => void;
-  exportDisabled?: boolean;
-}
-
-// Strips the .pdf extension for display; the full original name is still
-// shown via a Tooltip on hover, so nothing is actually lost.
-function cleanTitle(raw: string): string {
-  return raw.replace(/\.pdf$/i, '').trim();
+  orgSearch: string;
+  onOrgSearchChange: (q: string) => void;
+  onOpenOrg: (orgId: string) => void;
+  onExportOrg: (orgId: string) => void;
 }
 
 function DeltaChip({ pct }: { pct: number | null | undefined }) {
@@ -109,33 +101,35 @@ function KpiTile({
   );
 }
 
-export default function AnalyticsView({
+function orgSharePct(row: OrgAnalyticsRow, platformTotal: number) {
+  const opens = row.total || 0;
+  return platformTotal ? (opens / platformTotal) * 100 : 0;
+}
+
+export default function AnalyticsOverview({
   data,
   loading,
   error,
   days,
   onDaysChange,
-  onExport,
-  exportDisabled,
-}: AnalyticsViewProps) {
+  orgSearch,
+  onOrgSearchChange,
+  onOpenOrg,
+  onExportOrg,
+}: AnalyticsOverviewProps) {
   const [chartMetric, setChartMetric] = useState<ChartMetric>('opens');
   const [chartGranularity, setChartGranularity] = useState<ChartGranularity>('days');
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const [brochureSearch, setBrochureSearch] = useState('');
-  const [brochureSort, setBrochureSort] = useState<BrochureSort>('opens');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(8);
 
   const total = data?.total || 0;
   const countries = data?.countries || [];
-  const allBrochures = data?.by_brochure || [];
-  const projects = data?.by_project || [];
   const rawSeries = data?.series || [];
   const topCountry = countries[0];
   const delta = data?.delta;
   const peak = data?.peak;
   const weekday = data?.weekday || [];
   const windowDays = data?.window_days || days;
+  const orgRows = data?.organizations || [];
+  const orgCount = orgRows.length;
 
   const chartSeries = useMemo(() => buildChartSeries(rawSeries, chartGranularity), [rawSeries, chartGranularity]);
   const chartDataset = useMemo(
@@ -144,44 +138,25 @@ export default function AnalyticsView({
   );
   const weekdayDataset = useMemo(() => weekday.map((w) => ({ label: w.label, opens: w.opens })), [weekday]);
 
-  const filteredBrochures = useMemo(() => {
-    let rows = allBrochures.filter((r) => brochureMatchesCountry(r, selectedCountry));
-    const q = brochureSearch.trim().toLowerCase();
-    if (q) {
-      rows = rows.filter((r) => {
-        const titleText = (r.title || r.filename || '').toLowerCase();
-        const project = (r.project_name || '').toLowerCase();
-        return titleText.includes(q) || project.includes(q);
-      });
-    }
-    rows = [...rows];
-    if (brochureSort === 'last_opened') {
-      rows.sort((a, b) => String(b.last_opened_at || '').localeCompare(String(a.last_opened_at || '')));
-    } else {
-      rows.sort((a, b) => (b.total || 0) - (a.total || 0));
-    }
-    return rows;
-  }, [allBrochures, selectedCountry, brochureSearch, brochureSort]);
-
-  const filteredTotal = filteredBrochures.reduce((sum, r) => sum + (r.total || 0), 0);
-  const pageBrochures = filteredBrochures.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  function handleCountrySelect(code: string | null) {
-    setSelectedCountry((cur) => (cur === code ? null : code));
-    setPage(0);
-  }
+  const q = orgSearch.trim().toLowerCase();
+  const filteredOrgs = q
+    ? orgRows.filter((row) => {
+        const name = (row.organization?.name || '').toLowerCase();
+        const slug = (row.organization?.slug || '').toLowerCase();
+        return name.includes(q) || slug.includes(q) || row.org_id.toLowerCase().includes(q);
+      })
+    : orgRows;
 
   return (
     <Stack spacing={2}>
-      {/* Consolidated header: one title, controls right-aligned, no duplicate page titles */}
       <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
         <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.5}>
           <Box sx={{ mr: 'auto' }}>
             <Typography variant="h6" fontWeight={700}>
-              Analytics
+              Platform analytics
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Last {windowDays} days{data?.organization?.name ? ` · ${data.organization.name}` : ''}
+              Active organizations only · last {windowDays} days
               {loading ? ' · Loading…' : ''}
             </Typography>
           </Box>
@@ -198,15 +173,6 @@ export default function AnalyticsView({
               </ToggleButton>
             ))}
           </ToggleButtonGroup>
-          <Button
-            variant="outlined"
-            color="inherit"
-            startIcon={<DownloadIcon fontSize="small" />}
-            disabled={exportDisabled || !data || loading}
-            onClick={() => onExport({ days: windowDays, countryFilter: selectedCountry })}
-          >
-            Export PDF
-          </Button>
         </Stack>
       </Paper>
 
@@ -218,7 +184,7 @@ export default function AnalyticsView({
           <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
             {!data ? (
               <Stack direction="row" spacing={4} flexWrap="wrap">
-                {[0, 1, 2, 3].map((i) => (
+                {[0, 1, 2, 3, 4].map((i) => (
                   <Box key={i} sx={{ flex: 1, minWidth: 140 }}>
                     <Skeleton variant="text" width="60%" />
                     <Skeleton variant="text" width="40%" height={32} />
@@ -233,6 +199,7 @@ export default function AnalyticsView({
                   value={(data.unique_visitors || 0).toLocaleString()}
                   delta={delta?.unique_pct}
                 />
+                <KpiTile label="Organizations" value={String(orgCount)} meta="with traffic" />
                 <KpiTile
                   label="Peak day"
                   value={peak ? formatDayLabel(peak.date) : '—'}
@@ -345,18 +312,7 @@ export default function AnalyticsView({
             <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
               Geographic breakdown
             </Typography>
-            {selectedCountry && (
-              <Chip
-                size="small"
-                icon={<PublicIcon fontSize="small" />}
-                label={`Filtered: ${countryLabel(countries.find((c) => c.country === selectedCountry) || selectedCountry)}`}
-                onDelete={() => handleCountrySelect(selectedCountry)}
-                color="primary"
-                variant="outlined"
-                sx={{ mb: 1.5 }}
-              />
-            )}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '260px 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '260px 1fr' }, gap: 3, alignItems: 'start' }}>
               <Box sx={{ display: 'grid', placeItems: 'center' }}>
                 {countries.length === 0 ? (
                   <Typography color="text.secondary" sx={{ py: 4 }}>
@@ -376,11 +332,14 @@ export default function AnalyticsView({
                         outerRadius: 90,
                         paddingAngle: 3,
                         cornerRadius: 3,
+                        cx: 110,
+                        cy: 110,
                         valueFormatter: (item) => `${item.value} opens (${formatShare(item.value, total)})`,
                       },
                     ]}
                     height={220}
                     width={220}
+                    margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
                     slotProps={{ legend: { hidden: true } }}
                   />
                 )}
@@ -409,109 +368,42 @@ export default function AnalyticsView({
                         </TableCell>
                       </TableRow>
                     )}
-                    {countries.map((c, i) => {
-                      const pct = c.share ?? (total ? (c.count / total) * 100 : 0);
-                      const active = selectedCountry === c.country;
-                      return (
-                        <TableRow
-                          key={`${c.country || c.country_name}-${i}`}
-                          hover
-                          onClick={() => handleCountrySelect(c.country || null)}
-                          sx={{ cursor: 'pointer', bgcolor: active ? 'primary.light' : undefined }}
-                        >
-                          <TableCell>{i + 1}</TableCell>
-                          <TableCell>{countryLabel(c)}</TableCell>
-                          <TableCell align="right">{c.count}</TableCell>
-                          <TableCell>
-                            <Stack direction="row" alignItems="center" spacing={1}>
-                              <LinearProgress
-                                variant="determinate"
-                                value={pct}
-                                sx={{ flex: 1, height: 6, borderRadius: 999 }}
-                              />
-                              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 40 }}>
-                                {formatShare(c.count, total, c.share)}
-                              </Typography>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {countries.map((c, i) => (
+                      <TableRow key={`${c.country || c.country_name}-${i}`}>
+                        <TableCell>{i + 1}</TableCell>
+                        <TableCell>{countryLabel(c)}</TableCell>
+                        <TableCell align="right">{c.count}</TableCell>
+                        <TableCell>
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <LinearProgress
+                              variant="determinate"
+                              value={c.share ?? (total ? (c.count / total) * 100 : 0)}
+                              sx={{ flex: 1, height: 6, borderRadius: 999 }}
+                            />
+                            <Typography variant="body2" color="text.secondary" sx={{ minWidth: 40 }}>
+                              {formatShare(c.count, total, c.share)}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </TableContainer>
             </Box>
           </Paper>
 
-          {/* Brochure Performance Card */}
+          {/* Organizations Ranked Card */}
           <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
-              Brochure performance
-            </Typography>
-
-            {projects.length > 0 && (
-              <>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-                  Projects ranked
-                </Typography>
-                <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 3 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }} width={40}>
-                          #
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Project</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">
-                          Opens
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">
-                          Unique
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} width={140}>
-                          Share
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {projects.map((p, i) => (
-                        <TableRow key={p.project_id || `none-${i}`}>
-                          <TableCell>{i + 1}</TableCell>
-                          <TableCell>{p.project_name || '—'}</TableCell>
-                          <TableCell align="right">{p.total || 0}</TableCell>
-                          <TableCell align="right">{p.unique_visitors || 0}</TableCell>
-                          <TableCell>
-                            <Stack direction="row" alignItems="center" spacing={1}>
-                              <LinearProgress
-                                variant="determinate"
-                                value={p.share ?? 0}
-                                sx={{ flex: 1, height: 6, borderRadius: 999 }}
-                              />
-                              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 40 }}>
-                                {formatShare(p.total || 0, total, p.share)}
-                              </Typography>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </>
-            )}
-
             <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.5} sx={{ mb: 1.5 }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mr: 'auto' }}>
-                Most opened brochures
+              <Typography variant="subtitle1" fontWeight={700} sx={{ mr: 'auto' }}>
+                Organizations ranked by opens
               </Typography>
               <TextField
                 size="small"
-                placeholder="Search brochures…"
-                value={brochureSearch}
-                onChange={(e) => {
-                  setBrochureSearch(e.target.value);
-                  setPage(0);
-                }}
+                placeholder="Search organizations…"
+                value={orgSearch}
+                onChange={(e) => onOrgSearchChange(e.target.value)}
                 slotProps={{
                   input: {
                     startAdornment: (
@@ -522,16 +414,6 @@ export default function AnalyticsView({
                   },
                 }}
               />
-              <TextField
-                size="small"
-                select
-                value={brochureSort}
-                onChange={(e) => setBrochureSort(e.target.value as BrochureSort)}
-                sx={{ minWidth: 170 }}
-              >
-                <MenuItem value="opens">Sort by opens</MenuItem>
-                <MenuItem value="last_opened">Sort by last opened</MenuItem>
-              </TextField>
             </Stack>
 
             <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
@@ -541,8 +423,10 @@ export default function AnalyticsView({
                     <TableCell sx={{ fontWeight: 700 }} width={40}>
                       #
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Brochure</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Project</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Organization</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="right">
+                      Brochures
+                    </TableCell>
                     <TableCell sx={{ fontWeight: 700 }} align="right">
                       Opens
                     </TableCell>
@@ -552,69 +436,69 @@ export default function AnalyticsView({
                     <TableCell sx={{ fontWeight: 700 }} width={140}>
                       Share
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Last opened</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Top country</TableCell>
+                    <TableCell width={44} />
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {pageBrochures.length === 0 && (
+                  {filteredOrgs.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ color: 'text.secondary', py: 3 }}>
-                        No brochure opens in this window
+                      <TableCell colSpan={8} align="center" sx={{ color: 'text.secondary', py: 3 }}>
+                        {orgSearch.trim() ? 'No organizations match your search.' : 'No opens recorded in this window.'}
                       </TableCell>
                     </TableRow>
                   )}
-                  {pageBrochures.map((r: BrochureAnalyticsRow, i: number) => {
-                    const rawTitle = r.title || r.filename || 'Untitled';
-                    const display = cleanTitle(rawTitle);
-                    const share = r.share ?? (filteredTotal ? ((r.total || 0) / filteredTotal) * 100 : 0);
-                    return (
-                      <TableRow key={r.brochure_id || `${rawTitle}-${i}`} hover>
-                        <TableCell>{page * rowsPerPage + i + 1}</TableCell>
-                        <TableCell sx={{ maxWidth: 220 }}>
-                          <Tooltip title={rawTitle} arrow>
-                            <Typography variant="body2" fontWeight={600} noWrap>
-                              {display}
-                            </Typography>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>{r.project_name || '—'}</TableCell>
-                        <TableCell align="right">{r.total || 0}</TableCell>
-                        <TableCell align="right">{r.unique_visitors || 0}</TableCell>
-                        <TableCell>
-                          <Stack direction="row" alignItems="center" spacing={1}>
-                            <LinearProgress
-                              variant="determinate"
-                              value={share}
-                              sx={{ flex: 1, height: 6, borderRadius: 999 }}
-                            />
-                            <Typography variant="body2" color="text.secondary" sx={{ minWidth: 40 }}>
-                              {formatShare(r.total || 0, filteredTotal, share)}
-                            </Typography>
-                          </Stack>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {formatLastOpened(r.last_opened_at)}
+                  {filteredOrgs.map((row, i) => (
+                    <TableRow
+                      key={row.org_id}
+                      hover
+                      onClick={() => onOpenOrg(row.org_id)}
+                      sx={{ cursor: 'pointer' }}
+                    >
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>
+                          {row.organization?.name || row.org_id}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {row.organization?.slug || ''}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">{row.brochure_count || 0}</TableCell>
+                      <TableCell align="right">{row.total || 0}</TableCell>
+                      <TableCell align="right">{row.unique_visitors || 0}</TableCell>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={orgSharePct(row, total)}
+                            sx={{ flex: 1, height: 6, borderRadius: 999 }}
+                          />
+                          <Typography variant="body2" color="text.secondary" sx={{ minWidth: 40 }}>
+                            {formatShare(row.total || 0, total)}
                           </Typography>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                        </Stack>
+                      </TableCell>
+                      <TableCell>{row.countries && row.countries[0] ? formatCountryStat(row.countries[0]) : '—'}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Stack direction="row" spacing={0.5}>
+                          <IconButton
+                            size="small"
+                            title="Export PDF"
+                            aria-label="Export PDF"
+                            onClick={() => onExportOrg(row.org_id)}
+                          >
+                            <DownloadIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" title="Details" aria-label="Details" onClick={() => onOpenOrg(row.org_id)}>
+                            <ChevronRightIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
-              <TablePagination
-                component="div"
-                count={filteredBrochures.length}
-                page={page}
-                onPageChange={(_e, newPage) => setPage(newPage)}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPage(parseInt(e.target.value, 10));
-                  setPage(0);
-                }}
-                rowsPerPageOptions={[8, 15, 25]}
-                labelDisplayedRows={({ from, to, count }) => `Showing ${from}–${to} of ${count} brochures`}
-              />
             </TableContainer>
           </Paper>
         </>

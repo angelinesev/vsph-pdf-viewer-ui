@@ -225,7 +225,7 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
                 {file.name}
               </Typography>
             )}
-            <Button variant="contained" size="large" disabled={!file} onClick={handleUpload}>
+            <Button variant="contained" disableElevation disabled={!file} onClick={handleUpload}>
               Upload file
             </Button>
             {error && <Alert severity="error">{error}</Alert>}

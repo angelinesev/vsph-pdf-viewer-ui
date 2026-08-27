@@ -157,6 +157,7 @@ export default function LoginPanel({ onLogin }: LoginPanelProps) {
           /> */}
           <Button
             variant="contained"
+            disableElevation
             onClick={handleLogin}
             disabled={loggingIn}
             startIcon={loggingIn ? <CircularProgress size={16} color="inherit" /> : undefined}

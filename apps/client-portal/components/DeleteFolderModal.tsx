@@ -27,10 +27,10 @@ export default function DeleteFolderModal({ project, deleting, onClose, onConfir
         </DialogContentText>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button variant="outlined" color="inherit" onClick={onClose} disabled={deleting}>
+        <Button variant="outlined" disableElevation color="inherit" onClick={onClose} disabled={deleting}>
           Cancel
         </Button>
-        <Button variant="outlined" color="error" onClick={() => onConfirm()} disabled={deleting}>
+        <Button variant="outlined" disableElevation color="error" onClick={() => onConfirm()} disabled={deleting}>
           {deleting ? 'Deleting…' : 'Delete folder'}
         </Button>
       </DialogActions>

@@ -333,10 +333,10 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
             working and the file will be removed from storage.
           </DialogContentText>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2.5 }}>
-            <Button variant="outlined" color="inherit" disabled={deleting} onClick={() => setPendingDelete(null)}>
+            <Button variant="outlined" disableElevation color="inherit" disabled={deleting} onClick={() => setPendingDelete(null)}>
               Cancel
             </Button>
-            <Button variant="outlined" color="error" disabled={deleting} onClick={confirmDelete}>
+            <Button variant="outlined" disableElevation color="error" disabled={deleting} onClick={confirmDelete}>
               {deleting ? 'Deleting…' : 'Delete'}
             </Button>
           </Box>
