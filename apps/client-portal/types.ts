@@ -79,3 +79,9 @@ export interface UploadPrepared {
   slug: string;
   view_type: string;
 }
+
+export interface ReplacePrepared {
+  upload: { signedUrl: string };
+  brochure_id: string;
+  storage_path: string;
+}

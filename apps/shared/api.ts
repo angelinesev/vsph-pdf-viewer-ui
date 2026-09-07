@@ -3,6 +3,17 @@ export class ApiError extends Error {
   data?: { error?: string; limit?: number; used?: number } | null;
 }
 
+// Byte-scale quota limits (storage) are formatted as MB; small integer
+// limits (brochure count) are shown as-is.
+export function quotaSuffix(data?: { limit?: number; used?: number } | null): string {
+  if (data?.limit == null) return '';
+  if (data.limit >= 1024 * 1024) {
+    const fmt = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return ` (${fmt(data.used || 0)}/${fmt(data.limit)})`;
+  }
+  return ` (${data.used}/${data.limit})`;
+}
+
 interface CallOptions {
   method?: string;
   body?: unknown;

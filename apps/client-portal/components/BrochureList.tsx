@@ -2,6 +2,7 @@ import { useEffect, useImperativeHandle, useState, forwardRef } from 'react';
 import { callApi } from '../../shared/api';
 import type { Brochure, LinkResult } from '../types';
 import Modal from './Modal';
+import ReplaceFileForm from './ReplaceFileForm';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Skeleton from '@mui/material/Skeleton';
@@ -27,6 +28,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import IosShareIcon from '@mui/icons-material/IosShare';
+import ChangeCircleOutlinedIcon from '@mui/icons-material/ChangeCircleOutlined';
 
 interface BrochureListProps {
   token: string;
@@ -53,6 +55,7 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
   const [deleting, setDeleting] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuBrochure, setMenuBrochure] = useState<Brochure | null>(null);
+  const [replacing, setReplacing] = useState<{ id: string; title: string } | null>(null);
 
   async function refresh() {
     const list = await callApi<{ brochures: Brochure[] }>(`brochures-list?project_id=${encodeURIComponent(projectId)}`, {
@@ -300,17 +303,6 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
         <MenuItem
           onClick={() => {
             setMenuAnchor(null);
-            if (menuBrochure) setPendingDelete({ id: menuBrochure.id, title: menuBrochure.title || menuBrochure.filename });
-          }}
-        >
-          <ListItemIcon>
-            <DeleteOutlineIcon fontSize="small" color="error" />
-          </ListItemIcon>
-          <ListItemText sx={{ color: 'error.main' }}>Move to trash</ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            setMenuAnchor(null);
             if (menuBrochure) handleShare(menuBrochure.id);
           }}
         >
@@ -319,7 +311,43 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
           </ListItemIcon>
           <ListItemText>Share</ListItemText>
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            if (menuBrochure) setReplacing({ id: menuBrochure.id, title: menuBrochure.title || menuBrochure.filename });
+          }}
+        >
+          <ListItemIcon>
+            <ChangeCircleOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Replace file</ListItemText>
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            if (menuBrochure) setPendingDelete({ id: menuBrochure.id, title: menuBrochure.title || menuBrochure.filename });
+          }}
+        >
+          <ListItemIcon>
+            <DeleteOutlineIcon fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText sx={{ color: 'error.main' }}>Move to trash</ListItemText>
+        </MenuItem>
       </Menu>
+
+      {replacing && (
+        <ReplaceFileForm
+          token={token}
+          brochureId={replacing.id}
+          title={replacing.title}
+          onClose={() => setReplacing(null)}
+          onDone={() => {
+            setReplacing(null);
+            refresh().catch((err) => onError(err.message));
+          }}
+        />
+      )}
 
       {pendingDelete && (
         <Modal

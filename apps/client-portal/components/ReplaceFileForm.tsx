@@ -1,22 +1,19 @@
 import { useRef, useState } from 'react';
 import { callApi, quotaSuffix } from '../../shared/api';
-import type { LinkResult, UploadPrepared } from '../types';
+import type { ReplacePrepared } from '../types';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import LinearProgress from '@mui/material/LinearProgress';
 import Alert from '@mui/material/Alert';
 import Zoom from '@mui/material/Zoom';
 import CloseIcon from '@mui/icons-material/Close';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 function putWithProgress(url: string, file: File, onProgress: (pct: number) => void): Promise<void> {
@@ -42,17 +39,15 @@ function wait(ms: number): Promise<void> {
 
 type Phase = 'idle' | 'uploading' | 'done';
 
-interface UploadFormProps {
+interface ReplaceFileFormProps {
   token: string;
-  projectId: string;
+  brochureId: string;
+  title: string;
   onClose: () => void;
-  onUploaded: (link: LinkResult) => void;
   onDone: () => void;
 }
 
-export default function UploadForm({ token, projectId, onClose, onUploaded, onDone }: UploadFormProps) {
-  const [title, setTitle] = useState('');
-  const [viewType, setViewType] = useState<'brochure' | 'flyer'>('brochure');
+export default function ReplaceFileForm({ token, brochureId, title, onClose, onDone }: ReplaceFileFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -64,56 +59,35 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
     setFile(candidate && candidate.type === 'application/pdf' ? candidate : null);
   }
 
-  async function handleUpload() {
+  async function handleReplace() {
     setError('');
     if (!file) return;
     setPhase('uploading');
     setProgress(0);
     try {
-      const finalTitle = title.trim() || file.name;
-      const prepared = await callApi<UploadPrepared>('upload-prepare', {
+      const prepared = await callApi<ReplacePrepared>('replace-prepare', {
         method: 'POST',
         token,
-        body: {
-          filename: file.name,
-          title: finalTitle,
-          view_type: viewType,
-          size_bytes: file.size,
-          project_id: projectId,
-        },
+        body: { brochure_id: brochureId, filename: file.name, size_bytes: file.size },
       });
 
       await putWithProgress(prepared.upload.signedUrl, file, setProgress);
 
-      await callApi('upload-complete', {
+      await callApi('replace-complete', {
         method: 'POST',
         token,
         body: {
-          brochure_id: prepared.brochure_id,
-          project_id: prepared.project_id,
+          brochure_id: brochureId,
           storage_path: prepared.storage_path,
           filename: file.name,
-          title: finalTitle,
-          slug: prepared.slug,
-          view_type: prepared.view_type,
           size_bytes: file.size,
         },
-      });
-
-      const link = await callApi<LinkResult>('links-create', {
-        method: 'POST',
-        token,
-        body: { brochure_id: prepared.brochure_id, view_type: prepared.view_type },
       });
 
       setPhase('done');
       await wait(700);
 
-      onUploaded(link);
       onDone();
-      setFile(null);
-      setTitle('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err: any) {
       setError(err.message + quotaSuffix(err.data));
       setPhase('idle');
@@ -126,7 +100,7 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
     <Dialog open onClose={locked ? undefined : onClose} fullWidth maxWidth="xs">
       {phase === 'idle' && (
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
-          <Box component="span">Upload PDF</Box>
+          <Box component="span">Replace file</Box>
           <IconButton aria-label="Close" title="Close" size="small" onClick={onClose}>
             <CloseIcon fontSize="small" />
           </IconButton>
@@ -135,9 +109,9 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
 
       {phase === 'uploading' && (
         <DialogContent sx={{ textAlign: 'center', py: 5 }}>
-          <CloudUploadIcon color="primary" sx={{ fontSize: 52 }} />
+          <ChangeCircleIcon color="primary" sx={{ fontSize: 52 }} />
           <Typography sx={{ mt: 1.5, mb: 2 }} fontWeight={500}>
-            Uploading your file…
+            Replacing your file…
           </Typography>
           <LinearProgress variant="determinate" value={progress} sx={{ height: 6, borderRadius: 999 }} />
         </DialogContent>
@@ -149,7 +123,7 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
             <CheckCircleIcon color="success" sx={{ fontSize: 56 }} />
           </Zoom>
           <Typography sx={{ mt: 1.5 }} fontWeight={500}>
-            Upload complete
+            File replaced
           </Typography>
         </DialogContent>
       )}
@@ -157,31 +131,10 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
       {phase === 'idle' && (
         <DialogContent>
           <Stack spacing={2}>
-            <TextField
-              label="Title"
-              placeholder="Tower A brochure"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              fullWidth
-            />
-            <Box>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
-                Document type
-              </Typography>
-              <ToggleButtonGroup
-                exclusive
-                value={viewType}
-                onChange={(_e, v) => v && setViewType(v)}
-                size="small"
-              >
-                <ToggleButton value="brochure" sx={{ borderRadius: 999, px: 2 }}>
-                  Brochure
-                </ToggleButton>
-                <ToggleButton value="flyer" sx={{ borderRadius: 999, px: 2 }}>
-                  Flyer
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
+            <Typography variant="body2" color="text.secondary">
+              Choose a new PDF to replace <strong>&quot;{title}&quot;</strong>. The title, tags, and share links stay
+              the same — only the file content changes.
+            </Typography>
             <Box
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => {
@@ -237,8 +190,8 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
                 </IconButton>
               </Stack>
             )}
-            <Button variant="contained" disableElevation disabled={!file} onClick={handleUpload}>
-              Upload file
+            <Button variant="contained" disableElevation disabled={!file} onClick={handleReplace}>
+              Replace file
             </Button>
             {error && <Alert severity="error">{error}</Alert>}
           </Stack>
