@@ -50,6 +50,11 @@ function parseOptionalBytes(value) {
   return Math.floor(n);
 }
 
+function formatMb(bytes) {
+  const mb = Number(bytes || 0) / (1024 * 1024);
+  return `${mb % 1 === 0 ? mb : mb.toFixed(1)} MB`;
+}
+
 async function getOrgUsage(supabase, orgId) {
   const { data, error, count } = await supabase
     .from('brochures')
@@ -667,7 +672,7 @@ async function uploadPrepare(reqLike, body) {
   if (sizeBytes > 0 && sizeBytes > plan.max_file_bytes) {
     return {
       status: 413,
-      body: { error: `File exceeds plan limit of ${plan.max_file_bytes} bytes`, max_file_bytes: plan.max_file_bytes },
+      body: { error: `File exceeds plan limit of ${formatMb(plan.max_file_bytes)}`, max_file_bytes: plan.max_file_bytes },
     };
   }
 
@@ -815,6 +820,135 @@ async function uploadComplete(reqLike, body) {
       vanity_url: urls.vanity,
       usage: { year_month: ym, brochure_count: nextCount },
     },
+  };
+}
+
+async function replacePrepare(reqLike, body) {
+  const auth = await requireDeveloper(reqLike);
+  if (auth.error) return auth.error;
+
+  const brochureCheck = requireUuid(body.brochure_id, 'brochure_id');
+  if (brochureCheck.error) return brochureCheck.error;
+  const brochureId = brochureCheck.value;
+
+  const supabase = getSupabase();
+  const { data: existing, error: lookupError } = await supabase
+    .from('brochures')
+    .select('id, org_id, size_bytes')
+    .eq('id', brochureId)
+    .eq('org_id', auth.org.id)
+    .maybeSingle();
+  if (lookupError) return safeServerError(lookupError);
+  if (!existing) return publicError(404, 'Brochure not found');
+
+  const filename = safeFilename(body.filename);
+  const sizeBytes = Number(body.size_bytes || 0);
+  const bucket = getStorageBucket();
+
+  const { data: plan, error: planError } = await supabase
+    .from('plans')
+    .select('id, max_file_bytes, max_storage_bytes, features')
+    .eq('id', auth.org.plan_id)
+    .single();
+  if (planError) return safeServerError(planError);
+
+  if (sizeBytes > 0 && sizeBytes > plan.max_file_bytes) {
+    return {
+      status: 413,
+      body: { error: `File exceeds plan limit of ${formatMb(plan.max_file_bytes)}`, max_file_bytes: plan.max_file_bytes },
+    };
+  }
+
+  let usage;
+  try {
+    usage = await getOrgUsage(supabase, auth.org.id);
+  } catch (err) {
+    return safeServerError(err);
+  }
+
+  const storageLimit = planStorageLimit(plan);
+  const projectedStorage = usage.storageUsed - Number(existing.size_bytes || 0) + sizeBytes;
+  if (storageLimit != null && projectedStorage > storageLimit) {
+    return {
+      status: 402,
+      body: { error: 'Storage quota exceeded', used: usage.storageUsed, limit: storageLimit },
+    };
+  }
+
+  const storagePath = `${auth.org.id}/${brochureId}/${Date.now()}-${filename}`;
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from(bucket)
+    .createSignedUploadUrl(storagePath);
+  if (uploadError) return safeServerError(uploadError);
+
+  return {
+    status: 201,
+    body: {
+      brochure_id: brochureId,
+      storage_path: storagePath,
+      upload: {
+        signedUrl: uploadData.signedUrl,
+        path: uploadData.path,
+        token: uploadData.token,
+      },
+    },
+  };
+}
+
+async function replaceComplete(reqLike, body) {
+  const auth = await requireDeveloper(reqLike);
+  if (auth.error) return auth.error;
+
+  const brochureCheck = requireUuid(body.brochure_id, 'brochure_id');
+  if (brochureCheck.error) return brochureCheck.error;
+  const brochureId = brochureCheck.value;
+  const storagePath = String(body.storage_path || '');
+  const filename = safeFilename(body.filename || 'document.pdf');
+  const sizeBytes = Number(body.size_bytes || 0);
+
+  if (!storagePath) {
+    return publicError(400, 'brochure_id and storage_path are required');
+  }
+  const expectedPrefix = `${auth.org.id}/${brochureId}/`;
+  if (!storagePath.startsWith(expectedPrefix) || storagePath.includes('..')) {
+    return publicError(403, 'Invalid storage path for organization');
+  }
+
+  const supabase = getSupabase();
+  const bucket = getStorageBucket();
+
+  const { data: existing, error: lookupError } = await supabase
+    .from('brochures')
+    .select('id, org_id, storage_path')
+    .eq('id', brochureId)
+    .eq('org_id', auth.org.id)
+    .maybeSingle();
+  if (lookupError) return safeServerError(lookupError);
+  if (!existing) return publicError(404, 'Brochure not found');
+
+  const { error: signError } = await supabase.storage.from(bucket).createSignedUrl(storagePath, 60);
+  if (signError) return { status: 400, body: { error: 'Upload not found in storage' } };
+
+  const { data: brochure, error: updateError } = await supabase
+    .from('brochures')
+    .update({ storage_path: storagePath, filename, size_bytes: sizeBytes })
+    .eq('id', brochureId)
+    .eq('org_id', auth.org.id)
+    .select('*')
+    .single();
+  if (updateError) return safeServerError(updateError);
+
+  if (existing.storage_path && existing.storage_path !== storagePath) {
+    const { error: removeError } = await supabase.storage.from(bucket).remove([existing.storage_path]);
+    if (removeError && !/not found|does not exist/i.test(removeError.message || '')) {
+      console.warn('[storage remove]', removeError.message);
+    }
+  }
+
+  const urls = await vanityUrlsForBrochure(supabase, brochure, auth.org);
+  return {
+    status: 200,
+    body: { brochure, vanity_url: urls.vanity },
   };
 }
 
@@ -1476,6 +1610,8 @@ async function routeSaas(name, reqLike, body = {}, query = {}) {
     'projects-delete',
     'upload-prepare',
     'upload-complete',
+    'replace-prepare',
+    'replace-complete',
     'links-create',
     'quota-status',
     'brochures-list',
@@ -1512,6 +1648,10 @@ async function routeSaas(name, reqLike, body = {}, query = {}) {
       return uploadPrepare(reqLike, body);
     case 'upload-complete':
       return uploadComplete(reqLike, body);
+    case 'replace-prepare':
+      return replacePrepare(reqLike, body);
+    case 'replace-complete':
+      return replaceComplete(reqLike, body);
     case 'links-create':
       return linksCreate(reqLike, body);
     case 'quota-status':

@@ -4,11 +4,10 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import InputBase from '@mui/material/InputBase';
-import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
-import LinkIcon from '@mui/icons-material/Link';
-import CodeIcon from '@mui/icons-material/Code';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
@@ -21,17 +20,20 @@ interface ShareResultProps {
   tokenUrl: string;
 }
 
+type Tab = 'link' | 'embed';
+
 export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
   const pretty = vanityUrl || tokenUrl;
   const embed = embedSnippet(pretty);
-  const [copied, setCopied] = useState<'link' | 'embed' | null>(null);
+  const [tab, setTab] = useState<Tab>('link');
+  const [copied, setCopied] = useState<Tab | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, []);
 
-  function copy(value: string, field: 'link' | 'embed') {
+  function copy(value: string, field: Tab) {
     navigator.clipboard
       .writeText(value)
       .then(() => {
@@ -51,91 +53,129 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
 
   return (
     <Stack spacing={2.5}>
-      <Box>
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.75 }}>
-          <LinkIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-          <Typography variant="subtitle2" fontWeight={700}>
-            Link
-          </Typography>
-        </Stack>
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1.5}
-          sx={{ bgcolor: 'primary.light', borderRadius: 999, px: 2, py: 1 }}
-        >
-          <InputBase
-            readOnly
-            value={pretty}
-            sx={{ flex: 1, minWidth: 0, color: 'primary.main', fontWeight: 500 }}
-          />
-          <Divider orientation="vertical" flexItem sx={{ borderColor: 'primary.main', opacity: 0.25 }} />
-          <Button
-            disableElevation
-            onClick={() => copy(pretty, 'link')}
-            startIcon={copied === 'link' ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
-            sx={{ flexShrink: 0, color: copied === 'link' ? 'success.main' : 'primary.main' }}
-          >
-            {copied === 'link' ? 'Copied' : 'Copy link'}
-          </Button>
-        </Stack>
-      </Box>
+      <ToggleButtonGroup
+        exclusive
+        fullWidth
+        value={tab}
+        onChange={(_e, v) => v && setTab(v)}
+        size="small"
+        aria-label="Share format"
+      >
+        <ToggleButton value="link" sx={{ borderRadius: 999, fontWeight: 600 }}>
+          Direct Link
+        </ToggleButton>
+        <ToggleButton value="embed" sx={{ borderRadius: 999, fontWeight: 600 }}>
+          Embed Code
+        </ToggleButton>
+      </ToggleButtonGroup>
 
-      <Box>
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.75 }}>
-          <CodeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-          <Typography variant="subtitle2" fontWeight={700}>
-            Embed
+      {tab === 'link' ? (
+        <Box>
+          <Typography variant="subtitle1" fontWeight={700}>
+            Direct Link
           </Typography>
-        </Stack>
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1.5}
-          sx={{ bgcolor: 'background.default', borderRadius: 2, px: 2, py: 1.25 }}
-        >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Share this URL via chat, email, or social media for direct viewing.
+          </Typography>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            spacing={1}
+            sx={{
+              bgcolor: 'background.default',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              p: 1,
+            }}
+          >
+            <InputBase
+              readOnly
+              value={pretty}
+              onFocus={(e) => e.target.select()}
+              aria-label="Direct link URL"
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                px: 1,
+                py: 0.5,
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                '&.Mui-focused': { outline: '2px solid', outlineColor: 'primary.main', borderRadius: 1 },
+              }}
+            />
+            <Button
+              disableElevation
+              variant={copied === 'link' ? 'outlined' : 'contained'}
+              color={copied === 'link' ? 'success' : 'primary'}
+              onClick={() => copy(pretty, 'link')}
+              startIcon={copied === 'link' ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+              sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+            >
+              {copied === 'link' ? 'Copied!' : 'Copy Link'}
+            </Button>
+          </Stack>
+        </Box>
+      ) : (
+        <Box>
+          <Typography variant="subtitle1" fontWeight={700}>
+            Embed on Website
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Copy this HTML code snippet to display the document directly inside your website or blog.
+          </Typography>
           <Box
             component="code"
             sx={{
-              flex: 1,
-              minWidth: 0,
+              display: 'block',
+              bgcolor: 'background.default',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              p: 1.5,
+              mb: 1,
               fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
               fontSize: '0.78rem',
               lineHeight: 1.5,
               color: 'text.primary',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-all',
+              maxHeight: 160,
+              overflow: 'auto',
             }}
           >
             {embed}
           </Box>
-          <IconButton
-            aria-label="Copy embed code"
-            title="Copy embed code"
-            size="small"
+          <Button
+            fullWidth
+            disableElevation
+            variant={copied === 'embed' ? 'outlined' : 'contained'}
+            color={copied === 'embed' ? 'success' : 'primary'}
             onClick={() => copy(embed, 'embed')}
-            sx={{ color: copied === 'embed' ? 'success.main' : 'text.secondary' }}
+            startIcon={copied === 'embed' ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
           >
-            {copied === 'embed' ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
-          </IconButton>
-        </Stack>
-      </Box>
+            {copied === 'embed' ? 'Copied!' : 'Copy Code'}
+          </Button>
+        </Box>
+      )}
 
       <Box>
-        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.75 }}>
-          Share to
+        <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1 }}>
+          Or share directly via:
         </Typography>
         <Stack direction="row" spacing={1}>
           <IconButton
             component="a"
             href={mailHref}
             title="Email"
+            aria-label="Share via email"
             sx={{
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2.5,
               color: 'text.secondary',
               '&:hover': { bgcolor: 'primary.main', color: '#fff', borderColor: 'transparent' },
+              '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
           >
             <MailOutlineIcon fontSize="small" />
@@ -146,12 +186,14 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
             target="_blank"
             rel="noopener noreferrer"
             title="LinkedIn"
+            aria-label="Share via LinkedIn"
             sx={{
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2.5,
               color: 'text.secondary',
               '&:hover': { bgcolor: '#0a66c2', color: '#fff', borderColor: 'transparent' },
+              '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
           >
             <LinkedInIcon fontSize="small" />
@@ -162,12 +204,14 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
             target="_blank"
             rel="noopener noreferrer"
             title="Facebook"
+            aria-label="Share via Facebook"
             sx={{
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2.5,
               color: 'text.secondary',
               '&:hover': { bgcolor: '#1877f2', color: '#fff', borderColor: 'transparent' },
+              '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
           >
             <FacebookIcon fontSize="small" />
@@ -178,12 +222,14 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
             target="_blank"
             rel="noopener noreferrer"
             title="WhatsApp"
+            aria-label="Share via WhatsApp"
             sx={{
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2.5,
               color: 'text.secondary',
               '&:hover': { bgcolor: '#25d366', color: '#fff', borderColor: 'transparent' },
+              '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
           >
             <WhatsAppIcon fontSize="small" />
