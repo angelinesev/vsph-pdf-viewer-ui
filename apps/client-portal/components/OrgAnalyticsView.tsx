@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { callApi } from '../../shared/api';
 import type { AnalyticsRange } from '../../shared/analytics';
 import type { OrgAnalytics } from '../types';
-import AnalyticsView from './AnalyticsView';
+import AnalyticsView from '../../shared/AnalyticsView';
 import { exportAnalyticsPdf } from '../../shared/printAnalytics';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';

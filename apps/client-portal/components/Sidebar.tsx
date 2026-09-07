@@ -26,6 +26,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
     const isActive = active === view;
     return (
       <ButtonBase
+        data-tour={view === 'folders' ? 'tour-folders' : view === 'analytics' ? 'tour-analytics' : undefined}
         onClick={() => onNavigate(view)}
         sx={{
           flexDirection: 'column',
@@ -40,7 +41,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
         }}
       >
         <IconComponent fontSize="small" />
-        <Typography variant="caption" fontWeight={600}>
+        <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.625rem' }}>
           {label}
         </Typography>
       </ButtonBase>

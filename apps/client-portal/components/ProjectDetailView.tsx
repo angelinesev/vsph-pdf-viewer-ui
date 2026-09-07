@@ -41,7 +41,7 @@ export default function ProjectDetailView({
         <Icon name="auto_stories" />
         <h2>{project.name}</h2>
         <div className="page-header-actions">
-          <button type="button" className="upload-btn" onClick={() => setUploadOpen(true)}>
+          <button type="button" className="upload-btn" data-tour="tour-upload" onClick={() => setUploadOpen(true)}>
             <Icon name="add" />
             Upload
           </button>

@@ -3,16 +3,19 @@ import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 interface SettingsViewProps {
   orgName: string;
   planName: string;
   onLogout: () => void;
+  onHelp: () => void;
 }
 
-export default function SettingsView({ orgName, planName, onLogout }: SettingsViewProps) {
+export default function SettingsView({ orgName, planName, onLogout, onHelp }: SettingsViewProps) {
   return (
-    <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
       <Typography variant="h6" fontWeight={700} sx={{ mb: 1.5 }}>
         Settings
       </Typography>
@@ -25,6 +28,18 @@ export default function SettingsView({ orgName, planName, onLogout }: SettingsVi
       </Stack>
       <Button variant="outlined" disableElevation color="error" onClick={onLogout}>
         Sign out
+      </Button>
+
+      <Divider sx={{ my: 3 }} />
+
+      <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
+        Help
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        New here? Take a quick tour of folders, analytics, usage, and uploads.
+      </Typography>
+      <Button variant="outlined" disableElevation color="inherit" startIcon={<HelpOutlineIcon fontSize="small" />} onClick={onHelp}>
+        Show me around
       </Button>
     </Paper>
   );

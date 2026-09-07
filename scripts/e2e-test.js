@@ -17,7 +17,7 @@ const SAMPLE_PDF = path.join(
   __dirname,
   '..',
   'external',
-  'pdfjs-2.1.266-dist',
+  'pdfjs',
   'web',
   'compressed.tracemonkey-pldi-09.pdf',
 );

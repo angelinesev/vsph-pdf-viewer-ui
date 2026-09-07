@@ -64,6 +64,7 @@ export default function StatsRow({ quota, orgAnalytics, orgAnalyticsError }: Sta
 
   return (
     <Box
+      data-tour="tour-stats"
       sx={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',

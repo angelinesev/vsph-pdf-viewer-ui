@@ -256,7 +256,7 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
                     </TableCell>
                     <TableCell sx={{ width: 200, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">
-                        {new Date(b.created_at).toLocaleString()}
+                        {new Date(b.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                       </Typography>
                     </TableCell>
                     <TableCell>

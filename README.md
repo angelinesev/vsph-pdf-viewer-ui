@@ -29,11 +29,14 @@ node scripts/write-portal-config.js
    - [`supabase/schema.sql`](supabase/schema.sql)
    - [`supabase/migrations/002_multi_tenant.sql`](supabase/migrations/002_multi_tenant.sql)
 2. Create the first admin via `/admin/` bootstrap (set `BOOTSTRAP_SECRET` in `.env` / Netlify) or SQL in [`supabase/migrations/003_bootstrap_admin.sql`](supabase/migrations/003_bootstrap_admin.sql).
-3. Local Express:
+3. Build and run the local portals with the real Supabase configuration:
 
 ```bash
+npm run build:all
 npm start
 ```
+
+Do not use `npm run dev:local` for authentication testing; it intentionally enables demo UI values. After rebuilding, hard-refresh `/admin/` so the browser does not reuse an older bundle.
 
 | URL | Purpose |
 |-----|---------|

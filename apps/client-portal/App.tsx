@@ -8,6 +8,7 @@ import ProjectDetailView from './components/ProjectDetailView';
 import Sidebar, { type SidebarView } from './components/Sidebar';
 import OrgAnalyticsView from './components/OrgAnalyticsView';
 import SettingsView from './components/SettingsView';
+import OnboardingTour from './components/OnboardingTour';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 
@@ -23,6 +24,7 @@ export default function App() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [loginError, setLoginError] = useState('');
   const [view, setView] = useState<SidebarView>('folders');
+  const [tourOpen, setTourOpen] = useState(false);
 
   async function refreshQuota(activeToken: string) {
     const data = await callApi<Quota & { organization: { name: string }; plan: { name: string } }>('quota-status', {
@@ -37,6 +39,17 @@ export default function App() {
     } catch {
       setOrgAnalyticsError(true);
     }
+    return data.organization.name;
+  }
+
+  // First-ever login for this org (tracked client-side, per browser) gets the
+  // onboarding tour automatically; every login after that has to ask for it
+  // via Settings > Help.
+  function maybeShowOnboardingForNewAccount(orgName: string) {
+    const key = `onboarding_seen:${orgName}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+    setTourOpen(true);
   }
 
   useEffect(() => {
@@ -59,7 +72,21 @@ export default function App() {
     setLoggedIn(true);
     setCurrentProject(null);
     setView('folders');
-    refreshQuota(newToken).catch((err) => setLoginError(err.message));
+    refreshQuota(newToken)
+      .then(maybeShowOnboardingForNewAccount)
+      .catch((err) => setLoginError(err.message));
+  }
+
+  async function openFirstProjectForTour() {
+    if (currentProject) return;
+    try {
+      const res = await callApi<{ projects: Project[] }>('projects-list', { token });
+      const list = res.projects || [];
+      const first = list.find((p) => p.slug !== 'uncategorized') || list[0];
+      if (first) setCurrentProject(first);
+    } catch {
+      // no projects to open yet — the tour falls back to the create-project anchor
+    }
   }
 
   function handleLogout() {
@@ -138,10 +165,22 @@ export default function App() {
           {view === 'analytics' && <OrgAnalyticsView token={token} orgAnalyticsError={orgAnalyticsError} />}
 
           {view === 'settings' && (
-            <SettingsView orgName={headerSub} planName={quota?.plan.name || ''} onLogout={handleLogout} />
+            <SettingsView
+              orgName={headerSub}
+              planName={quota?.plan.name || ''}
+              onLogout={handleLogout}
+              onHelp={() => setTourOpen(true)}
+            />
           )}
         </Box>
       </Box>
+
+      <OnboardingTour
+        open={tourOpen}
+        onClose={() => setTourOpen(false)}
+        onStart={() => setView('folders')}
+        onNeedUploadTarget={openFirstProjectForTour}
+      />
     </>
   );
 }
