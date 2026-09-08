@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { callApi } from '../../shared/api';
-import logoUrl from '../../shared/VS-Logo.png';
+import logoUrl from '../../shared/logo-dark.png';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -77,6 +77,7 @@ export default function LoginPanel({ supabase, onLogin }: LoginPanelProps) {
           maxWidth: 450,
           p: 4,
           borderRadius: 1,
+          bgcolor: 'common.white',
           boxShadow: '0 5px 15px rgba(9, 11, 17, 0.05), 0 15px 35px -5px rgba(19, 23, 32, 0.05)',
         }}
       >
@@ -93,7 +94,7 @@ export default function LoginPanel({ supabase, onLogin }: LoginPanelProps) {
           />
         </Stack>
 
-        <Typography variant="h4" fontWeight={600} textAlign="center" gutterBottom>
+        <Typography variant="h4" textAlign="center" gutterBottom>
           Sign in
         </Typography>
         <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>

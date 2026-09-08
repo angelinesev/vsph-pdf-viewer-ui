@@ -71,9 +71,8 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
 
       {tab === 'link' ? (
         <Box>
-          <Typography variant="subtitle1" fontWeight={700}>
-            Direct Link
-          </Typography>
+          {/* The "Direct Link" heading duplicated the active tab label
+              directly above it — removed. */}
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
             Share this URL via chat, email, or social media for direct viewing.
           </Typography>
@@ -82,7 +81,7 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
             alignItems={{ xs: 'stretch', sm: 'center' }}
             spacing={1}
             sx={{
-              bgcolor: 'background.default',
+              bgcolor: '#EAE3D9',
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2,
@@ -110,7 +109,19 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
               color={copied === 'link' ? 'success' : 'primary'}
               onClick={() => copy(pretty, 'link')}
               startIcon={copied === 'link' ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
-              sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+              sx={{
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+                // Solid dark CTA — the one action people actually came to
+                // this modal for, so it should outrank the standard taupe
+                // button used everywhere else. Skipped while "Copied!" is
+                // showing so the green success state still reads clearly.
+                ...(copied !== 'link' && {
+                  bgcolor: '#1A1918',
+                  color: '#F0EAE3',
+                  '&:hover': { bgcolor: '#2E2B28', color: '#F0EAE3' },
+                }),
+              }}
             >
               {copied === 'link' ? 'Copied!' : 'Copy Link'}
             </Button>
@@ -118,7 +129,7 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
         </Box>
       ) : (
         <Box>
-          <Typography variant="subtitle1" fontWeight={700}>
+          <Typography variant="subtitle1">
             Embed on Website
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
@@ -128,7 +139,7 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
             component="code"
             sx={{
               display: 'block',
-              bgcolor: 'background.default',
+              bgcolor: '#EAE3D9',
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2,
@@ -153,6 +164,11 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
             color={copied === 'embed' ? 'success' : 'primary'}
             onClick={() => copy(embed, 'embed')}
             startIcon={copied === 'embed' ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+            sx={
+              copied !== 'embed'
+                ? { bgcolor: '#1A1918', color: '#F0EAE3', '&:hover': { bgcolor: '#2E2B28', color: '#F0EAE3' } }
+                : undefined
+            }
           >
             {copied === 'embed' ? 'Copied!' : 'Copy Code'}
           </Button>
@@ -160,7 +176,7 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
       )}
 
       <Box>
-        <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1 }}>
+        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
           Or share directly via:
         </Typography>
         <Stack direction="row" spacing={1}>
@@ -173,8 +189,10 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2.5,
-              color: 'text.secondary',
-              '&:hover': { bgcolor: 'primary.main', color: '#fff', borderColor: 'transparent' },
+              color: '#1A1918',
+              // No brand color to preserve here (unlike LinkedIn/Facebook/
+              // WhatsApp below), so this one gets the neutral dark tint.
+              '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.06)', color: '#1A1918', borderColor: 'transparent' },
               '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
           >
@@ -191,7 +209,7 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2.5,
-              color: 'text.secondary',
+              color: '#1A1918',
               '&:hover': { bgcolor: '#0a66c2', color: '#fff', borderColor: 'transparent' },
               '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
@@ -209,7 +227,7 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2.5,
-              color: 'text.secondary',
+              color: '#1A1918',
               '&:hover': { bgcolor: '#1877f2', color: '#fff', borderColor: 'transparent' },
               '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
@@ -227,7 +245,7 @@ export default function ShareResult({ vanityUrl, tokenUrl }: ShareResultProps) {
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2.5,
-              color: 'text.secondary',
+              color: '#1A1918',
               '&:hover': { bgcolor: '#25d366', color: '#fff', borderColor: 'transparent' },
               '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}

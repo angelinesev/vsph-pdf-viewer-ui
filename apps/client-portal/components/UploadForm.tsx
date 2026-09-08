@@ -123,7 +123,15 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
   const locked = phase !== 'idle';
 
   return (
-    <Dialog open onClose={locked ? undefined : onClose} fullWidth maxWidth="xs">
+    <Dialog
+      open
+      onClose={locked ? undefined : onClose}
+      fullWidth
+      maxWidth="xs"
+      slotProps={{
+        backdrop: { sx: { bgcolor: 'rgba(0, 0, 0, 0.55)', backdropFilter: 'blur(4px)' } },
+      }}
+    >
       {phase === 'idle' && (
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
           <Box component="span">Upload PDF</Box>
@@ -135,7 +143,7 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
 
       {phase === 'uploading' && (
         <DialogContent sx={{ textAlign: 'center', py: 5 }}>
-          <CloudUploadIcon color="primary" sx={{ fontSize: 52 }} />
+          <CloudUploadIcon sx={{ fontSize: 52, color: '#C3B8A7' }} />
           <Typography sx={{ mt: 1.5, mb: 2 }} fontWeight={500}>
             Uploading your file…
           </Typography>
@@ -201,7 +209,7 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
                 borderRadius: 2,
                 textAlign: 'center',
                 cursor: 'pointer',
-                bgcolor: dragOver ? 'primary.light' : '#fafbfc',
+                bgcolor: dragOver ? 'primary.light' : '#EAE3D9',
                 transition: 'border-color 0.15s, background 0.15s',
               }}
             >
@@ -237,7 +245,13 @@ export default function UploadForm({ token, projectId, onClose, onUploaded, onDo
                 </IconButton>
               </Stack>
             )}
-            <Button variant="contained" disableElevation disabled={!file} onClick={handleUpload}>
+            <Button
+              variant="contained"
+              disableElevation
+              disabled={!file}
+              onClick={handleUpload}
+              sx={{ borderRadius: '8px' }}
+            >
               Upload file
             </Button>
             {error && <Alert severity="error">{error}</Alert>}

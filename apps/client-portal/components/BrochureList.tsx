@@ -29,11 +29,11 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import IosShareIcon from '@mui/icons-material/IosShare';
 import ChangeCircleOutlinedIcon from '@mui/icons-material/ChangeCircleOutlined';
+import SearchIcon from '@mui/icons-material/Search';
 
 interface BrochureListProps {
   token: string;
   projectId: string;
-  searchTerm: string;
   onShare: (link: LinkResult) => void;
   onError: (message: string) => void;
   onDeleted: () => void;
@@ -44,11 +44,12 @@ export interface BrochureListHandle {
 }
 
 const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function BrochureList(
-  { token, projectId, searchTerm, onShare, onError, onDeleted },
+  { token, projectId, onShare, onError, onDeleted },
   ref,
 ) {
   const [brochures, setBrochures] = useState<Brochure[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
@@ -123,9 +124,20 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
 
   return (
     <Box>
-      <Typography variant="h6" fontWeight={700} sx={{ mb: 1.5 }}>
+      <Typography variant="h6" sx={{ mb: 1.5 }}>
         Brochures &amp; history
       </Typography>
+
+      {brochures.length > 0 && (
+        <div className="search-bar">
+          <SearchIcon fontSize="small" />
+          <input
+            placeholder="Search all flipbooks"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      )}
 
       {loaded && brochures.length === 0 && (
         <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
@@ -139,7 +151,7 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
       )}
 
       {!loaded && (
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: '#EEE8DE' }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -150,7 +162,7 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
                 <TableCell width={52} />
               </TableRow>
             </TableHead>
-            <TableBody>
+            <TableBody sx={{ '& tr:nth-of-type(even)': { backgroundColor: 'rgba(195, 184, 167, 0.12)' } }}>
               {[0, 1, 2, 3].map((i) => (
                 <TableRow key={i}>
                   <TableCell>
@@ -176,7 +188,7 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
       )}
 
       {visible.length > 0 && (
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: '#EEE8DE' }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -187,29 +199,31 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
                 <TableCell width={52} />
               </TableRow>
             </TableHead>
-            <TableBody>
+            <TableBody sx={{ '& tr:nth-of-type(even)': { backgroundColor: 'rgba(195, 184, 167, 0.12)' } }}>
               {pageItems.map((b) => {
                 const title = b.title || b.filename;
                 return (
-                  <TableRow key={b.id} hover>
+                  <TableRow
+                    key={b.id}
+                    hover
+                    onClick={() => handleOpen(b.id)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open ${title}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') handleOpen(b.id);
+                    }}
+                    sx={{ cursor: 'pointer' }}
+                  >
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
                         <Box
-                          onClick={() => handleOpen(b.id)}
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`View ${title}`}
-                          title={`View ${title}`}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') handleOpen(b.id);
-                          }}
                           sx={{
                             position: 'relative',
                             width: 48,
                             height: 48,
                             flexShrink: 0,
                             borderRadius: 2,
-                            cursor: 'pointer',
                             '&:hover .thumb-overlay': { opacity: 1 },
                           }}
                         >
@@ -238,7 +252,7 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
                               position: 'absolute',
                               inset: 0,
                               borderRadius: 2,
-                              bgcolor: 'rgba(17, 24, 39, 0.55)',
+                              bgcolor: 'rgba(28, 24, 22, 0.55)',
                               color: '#fff',
                               display: 'grid',
                               placeItems: 'center',
@@ -250,15 +264,20 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
                           </Box>
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="body2" fontWeight={600} noWrap>
+                          <Typography variant="body2" fontWeight={600} noWrap sx={{ letterSpacing: '-0.1px' }}>
                             {title}
                           </Typography>
-                          <Chip label={b.view_type} size="small" color="primary" variant="outlined" sx={{ mt: 0.5 }} />
+                          <Chip
+                            label={b.view_type}
+                            size="small"
+                            variant="outlined"
+                            sx={{ mt: 0.5, color: 'text.secondary', borderColor: 'divider', fontWeight: 500 }}
+                          />
                         </Box>
                       </Box>
                     </TableCell>
                     <TableCell sx={{ width: 200, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '13px' }}>
                         {new Date(b.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                       </Typography>
                     </TableCell>
@@ -268,6 +287,7 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
                         title="More options"
                         size="small"
                         onClick={(e) => {
+                          e.stopPropagation();
                           setMenuAnchor(e.currentTarget);
                           setMenuBrochure(b);
                         }}
@@ -296,10 +316,21 @@ const BrochureList = forwardRef<BrochureListHandle, BrochureListProps>(function 
       )}
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-        <Typography variant="subtitle2" fontWeight={700} sx={{ px: 2, py: 1, maxWidth: 240 }} noWrap>
+        <Typography variant="subtitle2" sx={{ px: 2, py: 1, maxWidth: 240 }} noWrap>
           {menuBrochure ? menuBrochure.title || menuBrochure.filename : ''}
         </Typography>
         <Divider />
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            if (menuBrochure) handleOpen(menuBrochure.id);
+          }}
+        >
+          <ListItemIcon>
+            <VisibilityIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Open</ListItemText>
+        </MenuItem>
         <MenuItem
           onClick={() => {
             setMenuAnchor(null);

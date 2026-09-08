@@ -26,7 +26,6 @@ export default function ProjectDetailView({
 }: ProjectDetailViewProps) {
   const [share, setShare] = useState<LinkResult | null>(null);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
   const [uploadOpen, setUploadOpen] = useState(false);
   const brochureListRef = useRef<BrochureListHandle>(null);
 
@@ -48,15 +47,6 @@ export default function ProjectDetailView({
         </div>
       </div>
 
-      <div className="search-bar">
-        <Icon name="search" />
-        <input
-          placeholder="Search all flipbooks"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
       <StatsRow quota={quota} orgAnalytics={orgAnalytics} orgAnalyticsError={orgAnalyticsError} />
 
       <p className="err">{error}</p>
@@ -71,7 +61,6 @@ export default function ProjectDetailView({
           ref={brochureListRef}
           token={token}
           projectId={project.id}
-          searchTerm={search}
           onShare={handleShare}
           onError={setError}
           onDeleted={() => {

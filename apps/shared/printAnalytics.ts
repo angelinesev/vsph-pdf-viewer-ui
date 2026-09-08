@@ -96,18 +96,18 @@ export function exportAnalyticsPdf(
   <meta charset="utf-8" />
   <title>${escapeHtml(fileTitle)}</title>
   <style>
-    body { font-family: Segoe UI, system-ui, sans-serif; color: #111827; margin: 32px; }
+    body { font-family: Segoe UI, system-ui, sans-serif; color: #28303B; margin: 32px; }
     h1 { font-size: 1.35rem; margin: 0 0 0.25rem; }
     h2 { font-size: 1rem; margin: 1.4rem 0 0.5rem; }
-    .sub { color: #6b7280; font-size: 0.9rem; margin: 0 0 1.25rem; }
-    .filter-note { color: #3257f6; font-weight: 600; }
+    .sub { color: #827A6F; font-size: 0.9rem; margin: 0 0 1.25rem; }
+    .filter-note { color: #28303B; font-weight: 600; }
     .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
-    .stat { border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem 1rem; min-width: 120px; }
-    .stat span { display: block; color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat { border: 1px solid #C3B8A7; border-radius: 8px; padding: 0.75rem 1rem; min-width: 120px; }
+    .stat span { display: block; color: #827A6F; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
     .stat strong { font-size: 1.2rem; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 0.5rem; }
-    th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid #e5e7eb; font-size: 0.9rem; }
-    th { color: #6b7280; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid #C3B8A7; font-size: 0.9rem; }
+    th { color: #827A6F; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
     @media print { body { margin: 16px; } }
   </style>
 </head>

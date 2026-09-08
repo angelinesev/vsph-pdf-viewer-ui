@@ -8,6 +8,7 @@ import Tooltip from '@mui/material/Tooltip';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import type { OrgAnalytics, Quota } from '../types';
 import { formatBytes, pct } from '../utils';
+import { colors } from '../../shared/colors';
 
 interface StatsRowProps {
   quota: Quota | null;
@@ -15,15 +16,18 @@ interface StatsRowProps {
   orgAnalyticsError: boolean;
 }
 
+const CARD_TEXT = colors.text;
+const CARD_MUTED = colors.secondary;
+
 function StatLabel({ children, tooltip }: { children: React.ReactNode; tooltip?: string }) {
   return (
     <Stack direction="row" spacing={0.5} alignItems="center">
-      <Typography variant="overline" color="text.secondary" fontWeight={600} lineHeight={1.4}>
+      <Typography variant="overline" sx={{ color: CARD_MUTED }} fontWeight={500} lineHeight={1.4}>
         {children}
       </Typography>
       {tooltip && (
         <Tooltip title={tooltip} arrow>
-          <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary', cursor: 'help' }} />
+          <InfoOutlinedIcon sx={{ fontSize: 14, color: CARD_MUTED, cursor: 'help' }} />
         </Tooltip>
       )}
     </Stack>
@@ -38,8 +42,6 @@ export default function StatsRow({ quota, orgAnalytics, orgAnalyticsError }: Sta
   const storageLimit = quota?.max_storage_bytes ?? null;
   const storagePct = storageLimit == null ? 0 : pct(storageUsed, storageLimit);
   const storageRemaining = storageLimit == null ? null : Math.max(0, storageLimit - storageUsed);
-  const storageColor: 'primary' | 'warning' | 'error' =
-    storageLimit == null ? 'primary' : storagePct >= 95 ? 'error' : storagePct >= 80 ? 'warning' : 'primary';
 
   if (!quota) {
     return (
@@ -52,7 +54,7 @@ export default function StatsRow({ quota, orgAnalytics, orgAnalyticsError }: Sta
         }}
       >
         {[0, 1, 2].map((i) => (
-          <Card key={i} sx={{ p: 2, borderRadius: 2 }}>
+          <Card key={i} sx={{ p: 2, borderRadius: 2, bgcolor: colors.surfaceAlt }}>
             <Skeleton variant="text" width="55%" height={20} />
             <Skeleton variant="text" width="40%" height={32} sx={{ mt: 0.5 }} />
             <Skeleton variant="rounded" height={6} sx={{ mt: 1, borderRadius: 999 }} />
@@ -72,53 +74,44 @@ export default function StatsRow({ quota, orgAnalytics, orgAnalyticsError }: Sta
         mb: 2,
       }}
     >
-      <Card sx={{ p: 2, borderRadius: 2 }}>
+      <Card sx={{ p: 2, borderRadius: 2, bgcolor: colors.surfaceAlt }}>
         <StatLabel>Active brochures</StatLabel>
-        <Typography variant="h6" fontWeight={700} sx={{ mt: 0.5 }}>
+        <Typography variant="h5" sx={{ mt: 0.5, color: CARD_TEXT }}>
           {used} / {limit == null ? 'Unlimited' : limit}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+        <Typography variant="body2" sx={{ mt: 0.25, color: CARD_MUTED }}>
           {limit == null ? 'Unlimited brochures' : `${limit} brochure limit`}
         </Typography>
-        <LinearProgress
-          variant="determinate"
-          value={pct(used, limit)}
-          sx={{ mt: 1, height: 6, borderRadius: 999 }}
-        />
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        <LinearProgress variant="determinate" value={pct(used, limit)} sx={{ mt: 1 }} />
+        <Typography variant="body2" sx={{ mt: 0.5, color: CARD_MUTED }}>
           {limit == null ? 'Unlimited uploads available' : `${Math.max(0, limit - used)} brochure uploads remaining`}
         </Typography>
       </Card>
 
-      <Card sx={{ p: 2, borderRadius: 2 }}>
+      <Card sx={{ p: 2, borderRadius: 2, bgcolor: colors.surfaceAlt }}>
         <StatLabel>Storage used</StatLabel>
-        <Typography variant="h6" fontWeight={700} sx={{ mt: 0.5 }}>
+        <Typography variant="h5" sx={{ mt: 0.5, color: CARD_TEXT }}>
           {formatBytes(quota?.storage_used)}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+        <Typography variant="body2" sx={{ mt: 0.25, color: CARD_MUTED }}>
           {storageLimit == null ? 'Custom storage limit' : `of ${formatBytes(storageLimit)} · ${storagePct}% used`}
         </Typography>
-        <LinearProgress
-          variant="determinate"
-          value={storagePct}
-          color={storageColor}
-          sx={{ mt: 1, height: 6, borderRadius: 999 }}
-        />
+        <LinearProgress variant="determinate" value={storagePct} sx={{ mt: 1 }} />
         {storageRemaining != null && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body2" sx={{ mt: 0.5, color: CARD_MUTED }}>
             {formatBytes(storageRemaining)} remaining
           </Typography>
         )}
       </Card>
 
-      <Card sx={{ p: 2, borderRadius: 2 }}>
+      <Card sx={{ p: 2, borderRadius: 2, bgcolor: colors.surfaceAlt }}>
         <StatLabel tooltip="Opens: total times your flipbooks were opened by visitors in the last 30 days, including repeat visits.">
           Opens (30d)
         </StatLabel>
-        <Typography variant="h6" fontWeight={700} sx={{ mt: 0.5 }}>
+        <Typography variant="h5" sx={{ mt: 0.5, color: CARD_TEXT }}>
           {orgAnalyticsError ? '—' : orgAnalytics?.total ?? '—'}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+        <Typography variant="body2" sx={{ mt: 0.25, color: CARD_MUTED }}>
           {orgAnalyticsError ? (
             'Run analytics migration to enable'
           ) : orgAnalytics ? (

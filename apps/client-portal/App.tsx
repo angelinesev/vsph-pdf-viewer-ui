@@ -135,7 +135,7 @@ export default function App() {
           }}
         />
 
-        <Box sx={{ flex: 1, minWidth: 0, maxWidth: 1000, mx: 'auto' }}>
+        <Box sx={{ flex: 1, minWidth: 0, maxWidth: { xs: '100%', md: '1200px' }, mx: 'auto' }}>
           {view === 'folders' && (
             <>
               {!currentProject && (

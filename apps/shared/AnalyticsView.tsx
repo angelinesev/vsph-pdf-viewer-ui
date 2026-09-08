@@ -23,6 +23,7 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import LinearProgress from '@mui/material/LinearProgress';
+import { colors } from './colors';
 import Tooltip from '@mui/material/Tooltip';
 import Skeleton from '@mui/material/Skeleton';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -44,7 +45,34 @@ import {
 type ChartMetric = 'opens' | 'unique';
 type BrochureSort = 'opens' | 'last_opened';
 
-const CHART_COLORS = ['#0362fc', '#5b8def', '#8fb8ff', '#0f9f6e', '#d97706', '#dd3d56', '#57606f'];
+// Deep Obsidian (primary) → Muted Slate (secondary) → Soft Gray-Taupe
+// (tertiary), cycled across categorical series/slices.
+const CHART_COLORS = ['#1A1917', '#475569', '#64748B'];
+
+// 4-up grid of KPI tiles with subtle vertical dividers between columns
+// (falling back to horizontal dividers when tiles stack on narrow screens).
+// Divider placement is driven by nth-of-type so it stays correct at every
+// breakpoint's column count, rather than hard-coding "first item" in JS.
+const KPI_GRID_SX = {
+  display: 'grid',
+  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+  '& > div': { borderTop: '1px solid rgba(0, 0, 0, 0.08)' },
+  '& > div:first-of-type': { borderTop: 'none' },
+  '@media (min-width: 600px)': {
+    '& > div': { borderTop: 'none', borderLeft: '1px solid rgba(0, 0, 0, 0.08)' },
+    '& > div:nth-of-type(2n+1)': { borderLeft: 'none' },
+    '& > div:nth-of-type(n+3)': { borderTop: '1px solid rgba(0, 0, 0, 0.08)' },
+  },
+  '@media (min-width: 900px)': {
+    // These two resets must match the specificity (and come after, in
+    // source order) of the sm-only rules above — a plain "& > div" reset
+    // here is a lower-specificity selector, so the sm rules would still win
+    // and leak a stray divider stub into the 4-column desktop layout.
+    '& > div:nth-of-type(n+3)': { borderTop: 'none' },
+    '& > div:nth-of-type(4n+1)': { borderLeft: 'none' },
+    '& > div:not(:nth-of-type(4n+1))': { borderLeft: '1px solid rgba(0, 0, 0, 0.08)' },
+  },
+} as const;
 
 interface AnalyticsViewProps {
   data: AnalyticsPayload | null;
@@ -73,8 +101,11 @@ function DeltaChip({ pct }: { pct: number | null | undefined }) {
       size="small"
       label={formatDelta(pct)}
       sx={{
-        bgcolor: up ? 'success.light' : 'error.light',
-        color: up ? 'success.main' : 'error.main',
+        // Deep Forest Green for growth, Warm Terracotta Rust for decline —
+        // kept distinct from the app's general success/error red so trend
+        // indicators read as their own semantic channel.
+        bgcolor: up ? 'rgba(22, 101, 52, 0.1)' : 'rgba(154, 52, 18, 0.1)',
+        color: up ? '#166534' : '#9A3412',
         fontWeight: 600,
       }}
     />
@@ -93,12 +124,12 @@ function KpiTile({
   delta?: number | null;
 }) {
   return (
-    <Box sx={{ flex: 1, minWidth: 140 }}>
-      <Typography variant="overline" color="text.secondary" fontWeight={600} lineHeight={1.4}>
+    <Box sx={{ px: { xs: 0, sm: 2.5 }, py: { xs: 1, sm: 0 } }}>
+      <Typography variant="overline" sx={{ color: 'rgba(0, 0, 0, 0.65)' }} lineHeight={1.4}>
         {label}
       </Typography>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5 }}>
-        <Typography variant="h5" fontWeight={700}>
+        <Typography variant="h5" fontWeight={700} sx={{ color: '#1A1917' }}>
           {value}
         </Typography>
         <DeltaChip pct={delta} />
@@ -186,13 +217,22 @@ export default function AnalyticsView({
   return (
     <Stack spacing={2}>
       {/* Consolidated header: one title, controls right-aligned, no duplicate page titles */}
-      <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+      <Paper
+        sx={{
+          p: { xs: 2, sm: 2.5 },
+          bgcolor: colors.surface,
+          color: '#1C1816',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+        }}
+      >
         <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.5}>
           <Box sx={{ mr: 'auto' }}>
-            <Typography variant="h6" fontWeight={700}>
+            <Typography variant="h6">
               {title}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: '#2C2A29' }}>
               {subtitle ?? defaultSubtitle}
               {loading ? ' · Loading…' : ''}
             </Typography>
@@ -204,6 +244,12 @@ export default function AnalyticsView({
             value={days}
             disabled={loading}
             onChange={(_e, v) => v && onDaysChange(v)}
+            sx={{
+              color: '#1C1816',
+              '& .MuiToggleButton-root': { color: '#1C1816', borderColor: '#C3B8A7' },
+              '& .MuiToggleButton-root.Mui-selected': { bgcolor: '#28303B', color: '#FFFFFF' },
+              '& .MuiToggleButton-root.Mui-selected:hover': { bgcolor: '#28303B' },
+            }}
           >
             {ANALYTICS_RANGES.map((r) => (
               <ToggleButton key={r} value={r} sx={{ px: 2 }}>
@@ -218,6 +264,13 @@ export default function AnalyticsView({
             startIcon={<DownloadIcon fontSize="small" />}
             disabled={exportDisabled || !data || loading}
             onClick={() => onExport({ days: windowDays, countryFilter: selectedCountry })}
+            sx={{
+              bgcolor: '#1C1816',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 999,
+              '&:hover': { bgcolor: '#2E2B28', color: '#FFFFFF', border: 'none', borderRadius: 999 },
+            }}
           >
             Export PDF
           </Button>
@@ -229,18 +282,18 @@ export default function AnalyticsView({
       {!error && (
         <>
           {/* KPI Overview Card */}
-          <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+          <Paper sx={{ p: { xs: 2, sm: 2.5 }, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: colors.surface }}>
             {!data ? (
-              <Stack direction="row" spacing={4} flexWrap="wrap">
+              <Box sx={KPI_GRID_SX}>
                 {[0, 1, 2, 3].map((i) => (
-                  <Box key={i} sx={{ flex: 1, minWidth: 140 }}>
+                  <Box key={i} sx={{ px: { xs: 0, sm: 2.5 }, py: { xs: 1, sm: 0 } }}>
                     <Skeleton variant="text" width="60%" />
                     <Skeleton variant="text" width="40%" height={32} />
                   </Box>
                 ))}
-              </Stack>
+              </Box>
             ) : (
-              <Stack direction="row" spacing={4} flexWrap="wrap" rowGap={2}>
+              <Box sx={{ ...KPI_GRID_SX, rowGap: 2 }}>
                 <KpiTile label="Opens" value={total.toLocaleString()} delta={delta?.opens_pct} />
                 <KpiTile
                   label="Unique visitors"
@@ -261,14 +314,14 @@ export default function AnalyticsView({
                       : 'No visits yet'
                   }
                 />
-              </Stack>
+              </Box>
             )}
           </Paper>
 
           {/* Traffic Trends Card */}
-          <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+          <Paper sx={{ p: { xs: 2, sm: 2.5 }, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: colors.bg }}>
             <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.5} sx={{ mb: 1 }}>
-              <Typography variant="subtitle1" fontWeight={700} sx={{ mr: 'auto' }}>
+              <Typography variant="subtitle1" sx={{ mr: 'auto' }}>
                 Traffic over time
               </Typography>
               <ToggleButtonGroup exclusive size="small" value={chartMetric} onChange={(_e, v) => v && setChartMetric(v)}>
@@ -309,7 +362,7 @@ export default function AnalyticsView({
                   {
                     dataKey: chartMetric,
                     label: chartMetric === 'opens' ? 'Opens' : 'Unique visitors',
-                    color: '#0362fc',
+                    color: '#1A1917',
                     area: true,
                     showMark: chartDataset.length <= 14,
                   },
@@ -319,16 +372,16 @@ export default function AnalyticsView({
                 margin={{ left: 44, right: 16, top: 16, bottom: 30 }}
                 sx={{
                   '& .MuiAreaElement-root': { fillOpacity: 0.12 },
-                  '& .MuiChartsAxis-line, & .MuiChartsAxis-tick': { stroke: '#c9cfd8' },
-                  '& .MuiChartsAxis-tickLabel': { fill: '#57606f' },
-                  '& .MuiChartsGrid-line': { stroke: '#eef0f3' },
+                  '& .MuiChartsAxis-line, & .MuiChartsAxis-tick': { stroke: '#C3B8A7' },
+                  '& .MuiChartsAxis-tickLabel': { fill: '#2C2A29' },
+                  '& .MuiChartsGrid-line': { stroke: '#EAE3D9' },
                 }}
               />
             )}
 
             <Divider sx={{ my: 2 }} />
 
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
               When people open
             </Typography>
             {weekdayDataset.length === 0 ? (
@@ -339,24 +392,26 @@ export default function AnalyticsView({
               <BarChart
                 dataset={weekdayDataset}
                 xAxis={[{ dataKey: 'label', scaleType: 'band' }]}
-                series={[{ dataKey: 'opens', label: 'Opens', color: '#0362fc' }]}
+                series={[{ dataKey: 'opens', label: 'Opens', color: '#475569' }]}
                 barLabel="value"
                 grid={{ horizontal: true }}
                 height={180}
                 margin={{ left: 44, right: 16, top: 24, bottom: 30 }}
                 sx={{
-                  '& .MuiBarLabel-root': { fill: '#131416', fontWeight: 600, fontSize: 12 },
-                  '& .MuiChartsAxis-line, & .MuiChartsAxis-tick': { stroke: '#c9cfd8' },
-                  '& .MuiChartsAxis-tickLabel': { fill: '#57606f' },
-                  '& .MuiChartsGrid-line': { stroke: '#eef0f3' },
+                  // Bar labels sit above the bars (not on the fill), so they
+                  // need a dark, high-contrast ink rather than the bar's own color.
+                  '& .MuiBarLabel-root': { fill: '#1A1917', fontWeight: 600, fontSize: 12 },
+                  '& .MuiChartsAxis-line, & .MuiChartsAxis-tick': { stroke: '#C3B8A7' },
+                  '& .MuiChartsAxis-tickLabel': { fill: '#2C2A29' },
+                  '& .MuiChartsGrid-line': { stroke: '#EAE3D9' },
                 }}
               />
             )}
           </Paper>
 
           {/* Geographic Breakdown Card */}
-          <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
+          <Paper sx={{ p: { xs: 2, sm: 2.5 }, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: colors.surface }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
               Geographic breakdown
             </Typography>
             {selectedCountry && (
@@ -365,7 +420,7 @@ export default function AnalyticsView({
                 icon={<PublicIcon fontSize="small" />}
                 label={`Filtered: ${countryLabel(countries.find((c) => c.country === selectedCountry) || selectedCountry)}`}
                 onDelete={() => handleCountrySelect(selectedCountry)}
-                color="primary"
+                color="info"
                 variant="outlined"
                 sx={{ mb: 1.5 }}
               />
@@ -402,7 +457,7 @@ export default function AnalyticsView({
                   />
                 )}
               </Box>
-              <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: colors.surface }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -413,7 +468,7 @@ export default function AnalyticsView({
                       <TableCell sx={{ fontWeight: 700 }} align="right">
                         Opens
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} width={160}>
+                      <TableCell sx={{ fontWeight: 700 }} align="right" width={160}>
                         Share
                       </TableCell>
                     </TableRow>
@@ -472,17 +527,17 @@ export default function AnalyticsView({
           </Paper>
 
           {/* Brochure Performance Card */}
-          <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
+          <Paper sx={{ p: { xs: 2, sm: 2.5 }, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: colors.surface }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
               Brochure performance
             </Typography>
 
             {projects.length > 0 && (
               <>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
                   Projects ranked
                 </Typography>
-                <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 3 }}>
+                <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 3, bgcolor: colors.surface }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
@@ -496,7 +551,7 @@ export default function AnalyticsView({
                         <TableCell sx={{ fontWeight: 700 }} align="right">
                           Unique
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} width={140}>
+                        <TableCell sx={{ fontWeight: 700 }} align="right" width={140}>
                           Share
                         </TableCell>
                       </TableRow>
@@ -529,7 +584,7 @@ export default function AnalyticsView({
             )}
 
             <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.5} sx={{ mb: 1.5 }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mr: 'auto' }}>
+              <Typography variant="subtitle2" sx={{ mr: 'auto' }}>
                 Most opened brochures
               </Typography>
               <TextField
@@ -549,20 +604,21 @@ export default function AnalyticsView({
                     ),
                   },
                 }}
+                sx={{ bgcolor: colors.bg, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' } }}
               />
               <TextField
                 size="small"
                 select
                 value={brochureSort}
                 onChange={(e) => setBrochureSort(e.target.value as BrochureSort)}
-                sx={{ minWidth: 170 }}
+                sx={{ minWidth: 170, bgcolor: colors.surface, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' } }}
               >
                 <MenuItem value="opens">Sort by opens</MenuItem>
                 <MenuItem value="last_opened">Sort by last opened</MenuItem>
               </TextField>
             </Stack>
 
-            <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+            <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: colors.surface }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -577,10 +633,12 @@ export default function AnalyticsView({
                     <TableCell sx={{ fontWeight: 700 }} align="right">
                       Unique
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 700 }} width={140}>
+                    <TableCell sx={{ fontWeight: 700 }} align="right" width={140}>
                       Share
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Last opened</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="right">
+                      Last opened
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -600,7 +658,7 @@ export default function AnalyticsView({
                         <TableCell>{page * rowsPerPage + i + 1}</TableCell>
                         <TableCell sx={{ maxWidth: 220 }}>
                           <Tooltip title={rawTitle} arrow>
-                            <Typography variant="body2" fontWeight={600} noWrap>
+                            <Typography variant="body2" fontWeight={600} noWrap sx={{ letterSpacing: '-0.1px' }}>
                               {display}
                             </Typography>
                           </Tooltip>
@@ -615,13 +673,13 @@ export default function AnalyticsView({
                               value={share}
                               sx={{ flex: 1, height: 6, borderRadius: 999 }}
                             />
-                            <Typography variant="body2" color="text.secondary" sx={{ minWidth: 40 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ minWidth: 40, fontSize: '13px' }}>
                               {formatShare(r.total || 0, filteredTotal, share)}
                             </Typography>
                           </Stack>
                         </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
+                        <TableCell align="right">
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '13px' }}>
                             {formatLastOpened(r.last_opened_at)}
                           </Typography>
                         </TableCell>

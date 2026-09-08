@@ -35,7 +35,7 @@ export default function PlansGrid({ plans, loading }: PlansGridProps) {
   if (loading) {
     return (
       <Box>
-        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
+        <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
           Plan
         </Typography>
         <Card sx={{ borderRadius: 2, p: 2.5 }}>
@@ -51,7 +51,7 @@ export default function PlansGrid({ plans, loading }: PlansGridProps) {
   if (!plans.length) {
     return (
       <Box>
-        <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
+        <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
           Plan
         </Typography>
         <Typography color="text.secondary">VSPH Plan not configured. Run migration 007 / npm run apply:vsph-plan.</Typography>
@@ -61,7 +61,7 @@ export default function PlansGrid({ plans, loading }: PlansGridProps) {
 
   return (
     <Box>
-      <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5 }}>
+      <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
         Plan
       </Typography>
       <Stack spacing={2}>
@@ -76,7 +76,7 @@ export default function PlansGrid({ plans, loading }: PlansGridProps) {
               >
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 160 }}>
                   <WorkspacePremiumIcon fontSize="small" color="primary" />
-                  <Typography variant="h6" fontWeight={700}>
+                  <Typography variant="h6">
                     {p.name}
                   </Typography>
                 </Stack>

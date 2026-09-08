@@ -75,7 +75,16 @@ export default function CreateOrgModal({ jwt, open, onClose, onCreated, existing
   }
 
   return (
-    <Dialog open={open} onClose={creating ? undefined : onClose} fullWidth maxWidth="xs">
+    <Dialog
+      open={open}
+      onClose={creating ? undefined : onClose}
+      fullWidth
+      maxWidth="xs"
+      slotProps={{
+        backdrop: { sx: { bgcolor: 'rgba(0, 0, 0, 0.55)', backdropFilter: 'blur(4px)' } },
+        paper: { sx: { border: '1px solid rgba(0, 0, 0, 0.08)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)' } },
+      }}
+    >
       <Box
         component="form"
         onSubmit={(e) => {

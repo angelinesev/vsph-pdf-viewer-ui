@@ -85,12 +85,15 @@ export default function ProjectsView({
           <h2>Projects</h2>
         </div>
         <p className="muted">Folders for estates / developments (e.g. Miravera). Upload brochures inside each project.</p>
-        <div className="row">
-          <div className="project-name-field">
-            <label>New project name</label>
-            <input placeholder="Enter Project Name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <button className="inline project-create-btn" type="button" data-tour="tour-create-project" onClick={handleCreate}>
+        <label htmlFor="new-project-name">New project name</label>
+        <div className="input-group">
+          <input
+            id="new-project-name"
+            placeholder="Enter Project Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <button className="project-create-btn" type="button" data-tour="tour-create-project" onClick={handleCreate}>
             Create project
           </button>
         </div>
@@ -117,6 +120,11 @@ export default function ProjectsView({
                   </div>
                 </div>
               </button>
+              {p.slug === 'uncategorized' && (
+                <span className="folder-card-affordance" aria-hidden="true">
+                  <Icon name="chevron_right" />
+                </span>
+              )}
               {p.slug !== 'uncategorized' && (
                 <div className="card-menu" ref={openMenuId === p.id ? menuRef : undefined}>
                   <button

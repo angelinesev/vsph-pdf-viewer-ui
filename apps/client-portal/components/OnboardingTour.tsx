@@ -153,7 +153,7 @@ export default function OnboardingTour({ open, onClose, onStart, onNeedUploadTar
           position: 'fixed',
           inset: 0,
           zIndex: 1300,
-          bgcolor: rect ? 'transparent' : 'rgba(17, 24, 39, 0.35)',
+          bgcolor: rect ? 'transparent' : 'rgba(28, 24, 22, 0.35)',
         }}
       />
 
@@ -166,7 +166,7 @@ export default function OnboardingTour({ open, onClose, onStart, onNeedUploadTar
             width: rect.width + 8,
             height: rect.height + 8,
             borderRadius: 2,
-            boxShadow: '0 0 0 3px #0362fc, 0 0 0 9999px rgba(17, 24, 39, 0.35)',
+            boxShadow: '0 0 0 3px #28303B, 0 0 0 9999px rgba(28, 24, 22, 0.35)',
             zIndex: 1301,
             pointerEvents: 'none',
             transition: 'top 0.15s, left 0.15s',
@@ -184,8 +184,9 @@ export default function OnboardingTour({ open, onClose, onStart, onNeedUploadTar
           width: 320,
           p: 3,
           borderRadius: 3,
-          bgcolor: 'primary.main',
-          color: '#fff',
+          bgcolor: '#EEE8DE',
+          color: '#1C1816',
+          border: '1px solid #C3B8A7',
           zIndex: 1400,
           transition: 'top 0.15s, left 0.15s',
         }}
@@ -198,7 +199,9 @@ export default function OnboardingTour({ open, onClose, onStart, onNeedUploadTar
               top: Math.max(16, Math.min(placement.arrowOffset, 220)),
               width: 16,
               height: 16,
-              bgcolor: 'primary.main',
+              bgcolor: '#EEE8DE',
+              borderLeft: '1px solid #C3B8A7',
+              borderBottom: '1px solid #C3B8A7',
               transform: 'rotate(45deg)',
             }}
           />
@@ -211,7 +214,9 @@ export default function OnboardingTour({ open, onClose, onStart, onNeedUploadTar
               left: Math.max(16, Math.min(placement.arrowOffset, 288)),
               width: 16,
               height: 16,
-              bgcolor: 'primary.main',
+              bgcolor: '#EAE3D9',
+              borderLeft: '1px solid #C3B8A7',
+              borderBottom: '1px solid #C3B8A7',
               transform: 'rotate(45deg)',
             }}
           />
@@ -221,18 +226,18 @@ export default function OnboardingTour({ open, onClose, onStart, onNeedUploadTar
           aria-label="Close"
           size="small"
           onClick={onClose}
-          sx={{ position: 'absolute', top: 8, right: 8, color: 'rgba(255,255,255,0.75)' }}
+          sx={{ position: 'absolute', top: 8, right: 8, color: '#827A6F' }}
         >
           <CloseIcon fontSize="small" />
         </IconButton>
 
-        <Typography variant="overline" sx={{ opacity: 0.85, letterSpacing: 1 }}>
+        <Typography variant="overline" sx={{ color: '#827A6F', letterSpacing: 1 }}>
           Step {step + 1} of {STEPS.length}
         </Typography>
-        <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 0.5, mb: 1 }}>
+        <Typography variant="subtitle1" sx={{ mt: 0.5, mb: 1 }}>
           {current.title}
         </Typography>
-        <Typography variant="body2" sx={{ mb: 2.5, opacity: 0.95 }}>
+        <Typography variant="body2" sx={{ mb: 2.5 }}>
           {current.body}
         </Typography>
 
@@ -242,17 +247,11 @@ export default function OnboardingTour({ open, onClose, onStart, onNeedUploadTar
             type="button"
             underline="hover"
             onClick={onClose}
-            sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8rem' }}
+            sx={{ color: '#827A6F', fontSize: '0.8rem' }}
           >
             Hide these tips
           </Link>
-          <Button
-            variant="contained"
-            size="small"
-            disableElevation
-            onClick={handleNext}
-            sx={{ bgcolor: '#fff', color: 'primary.main', '&:hover': { bgcolor: '#f0f0f0' } }}
-          >
+          <Button variant="contained" size="small" disableElevation onClick={handleNext}>
             {isLast ? 'Done' : 'Next'}
           </Button>
         </Stack>

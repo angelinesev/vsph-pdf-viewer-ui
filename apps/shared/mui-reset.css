@@ -41,11 +41,19 @@ button.MuiButtonBase-root:hover:not(.Mui-disabled) {
 /* portal.css's hover rule also resets background-COLOR to transparent (part
    of its `background: linear-gradient(...)` shorthand), which the rule
    above doesn't touch. For most buttons that's harmless (a lost hover tint),
-   but on contained/primary buttons it makes white button text vanish against
-   a transparent background. Restore it with a selector specific enough to
-   win outright, not just tie on source order. */
-button.MuiButtonBase-root.MuiButton-containedPrimary:hover:not(.Mui-disabled) {
-  background-color: #0250d1;
+   but on primary buttons (contained/outlined/text all get a solid dark fill
+   from theme.ts) it makes white button text vanish against a transparent
+   background. Restore it with a selector specific enough to win outright,
+   not just tie on source order.
+   Uses var(--create-btn-hover) rather than a literal so it can't drift from
+   MuiButton's primary hover backgroundColor in theme.ts (both read
+   colors.createBtnHover from apps/shared/colors.ts) — this rule's
+   specificity beats the theme's generated `&:hover` class, so a mismatch
+   here would make the button visibly flash the wrong color on hover. */
+button.MuiButtonBase-root.MuiButton-containedPrimary:hover:not(.Mui-disabled),
+button.MuiButtonBase-root.MuiButton-outlinedPrimary:hover:not(.Mui-disabled),
+button.MuiButtonBase-root.MuiButton-textPrimary:hover:not(.Mui-disabled) {
+  background-color: var(--create-btn-hover);
 }
 
 .MuiInputBase-input {

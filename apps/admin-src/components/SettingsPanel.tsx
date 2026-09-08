@@ -22,7 +22,7 @@ export default function SettingsPanel({ plans, onLogout, loading }: SettingsPane
 
   return (
     <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
-      <Typography variant="h6" fontWeight={700} sx={{ mb: 1.5 }}>
+      <Typography variant="h6" sx={{ mb: 1.5 }}>
         Settings
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -41,7 +41,14 @@ export default function SettingsPanel({ plans, onLogout, loading }: SettingsPane
         Sign out
       </Button>
 
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        slotProps={{
+          backdrop: { sx: { bgcolor: 'rgba(0, 0, 0, 0.55)', backdropFilter: 'blur(4px)' } },
+          paper: { sx: { border: '1px solid rgba(0, 0, 0, 0.08)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)' } },
+        }}
+      >
         <DialogTitle>Sign out?</DialogTitle>
         <DialogContent>
           <DialogContentText>You'll need to sign in again to access the admin portal.</DialogContentText>
@@ -50,7 +57,7 @@ export default function SettingsPanel({ plans, onLogout, loading }: SettingsPane
           <Button variant="outlined" disableElevation color="inherit" onClick={() => setConfirmOpen(false)}>
             Cancel
           </Button>
-          <Button variant="outlined" disableElevation color="error" onClick={onLogout}>
+          <Button variant="contained" disableElevation color="error" onClick={onLogout}>
             Sign out
           </Button>
         </DialogActions>

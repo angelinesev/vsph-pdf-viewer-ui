@@ -11,6 +11,7 @@ import '../shared/config.js';
 import '../shared/portal.css';
 import '../shared/mui-reset.css';
 import '../shared/fonts/inter.css';
+import '../shared/applyColors';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

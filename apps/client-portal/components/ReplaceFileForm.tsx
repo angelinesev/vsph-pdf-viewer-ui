@@ -97,7 +97,15 @@ export default function ReplaceFileForm({ token, brochureId, title, onClose, onD
   const locked = phase !== 'idle';
 
   return (
-    <Dialog open onClose={locked ? undefined : onClose} fullWidth maxWidth="xs">
+    <Dialog
+      open
+      onClose={locked ? undefined : onClose}
+      fullWidth
+      maxWidth="xs"
+      slotProps={{
+        backdrop: { sx: { bgcolor: 'rgba(0, 0, 0, 0.55)', backdropFilter: 'blur(4px)' } },
+      }}
+    >
       {phase === 'idle' && (
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
           <Box component="span">Replace file</Box>
@@ -109,7 +117,7 @@ export default function ReplaceFileForm({ token, brochureId, title, onClose, onD
 
       {phase === 'uploading' && (
         <DialogContent sx={{ textAlign: 'center', py: 5 }}>
-          <ChangeCircleIcon color="primary" sx={{ fontSize: 52 }} />
+          <ChangeCircleIcon sx={{ fontSize: 52, color: '#C3B8A7' }} />
           <Typography sx={{ mt: 1.5, mb: 2 }} fontWeight={500}>
             Replacing your file…
           </Typography>
@@ -133,7 +141,7 @@ export default function ReplaceFileForm({ token, brochureId, title, onClose, onD
           <Stack spacing={2}>
             <Typography variant="body2" color="text.secondary">
               Choose a new PDF to replace <strong>&quot;{title}&quot;</strong>. The title, tags, and share links stay
-              the same — only the file content changes.
+              the same only the file content changes.
             </Typography>
             <Box
               onClick={() => fileInputRef.current?.click()}
@@ -154,7 +162,7 @@ export default function ReplaceFileForm({ token, brochureId, title, onClose, onD
                 borderRadius: 2,
                 textAlign: 'center',
                 cursor: 'pointer',
-                bgcolor: dragOver ? 'primary.light' : '#fafbfc',
+                bgcolor: dragOver ? 'primary.light' : '#EAE3D9',
                 transition: 'border-color 0.15s, background 0.15s',
               }}
             >

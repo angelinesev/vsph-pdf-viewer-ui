@@ -103,7 +103,7 @@ export default function App() {
       >
         <Sidebar active={view} onNavigate={setView} />
 
-        <Box sx={{ flex: 1, minWidth: 0, maxWidth: 1100, mx: 'auto' }}>
+        <Box sx={{ flex: 1, minWidth: 0, maxWidth: { xs: '100%', md: '1200px' }, mx: 'auto' }}>
           {view === 'organizations' && (
             <Stack spacing={2}>
               <StatsOverview orgs={orgs} plan={plans[0]} loading={loading} />

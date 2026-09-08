@@ -6,6 +6,7 @@ import FolderIcon from '@mui/icons-material/Folder';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
 import type { SvgIconComponent } from '@mui/icons-material';
+import { colors } from '../../shared/colors';
 
 export type SidebarView = 'folders' | 'analytics' | 'settings';
 
@@ -34,14 +35,14 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
           width: '100%',
           py: 1.35,
           px: 1,
-          borderRadius: 2,
-          color: isActive ? 'primary.main' : 'text.secondary',
-          bgcolor: isActive ? 'primary.light' : 'transparent',
-          '&:hover': { bgcolor: isActive ? 'primary.light' : 'action.hover' },
+          borderRadius: '13px',
+          color: isActive ? colors.text : 'text.secondary',
+          bgcolor: isActive ? colors.sidebarActive : 'transparent',
+          '&:hover': { bgcolor: isActive ? colors.sidebarActive : 'action.hover' },
         }}
       >
-        <IconComponent fontSize="small" />
-        <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.625rem' }}>
+        <IconComponent sx={{ fontSize: 18 }} />
+        <Typography variant="caption" fontWeight={isActive ? 700 : 500}>
           {label}
         </Typography>
       </ButtonBase>

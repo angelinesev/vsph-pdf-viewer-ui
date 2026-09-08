@@ -190,7 +190,7 @@ export default function AccessDrawer({ jwt, org, open, onClose, onArchived, focu
       <Box sx={{ width: { xs: '100vw', sm: 420 }, p: { xs: 2, sm: 2.5 }, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Stack direction="row" alignItems="flex-start" sx={{ mb: 2 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h6" fontWeight={700} noWrap>
+            <Typography variant="h6" noWrap>
               {org?.name || 'Access'}
             </Typography>
             <Typography variant="body2" color="text.secondary" noWrap>
@@ -212,7 +212,7 @@ export default function AccessDrawer({ jwt, org, open, onClose, onArchived, focu
             <>
               {activeCode && (
                 <>
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
                     Current access
                   </Typography>
                   <Stack spacing={1} sx={{ mb: 2 }}>
@@ -267,7 +267,7 @@ export default function AccessDrawer({ jwt, org, open, onClose, onArchived, focu
                 </>
               )}
 
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
                 {activeCode ? 'Rotate credentials' : 'Create access code'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
@@ -324,7 +324,7 @@ export default function AccessDrawer({ jwt, org, open, onClose, onArchived, focu
               {activeCode && (
                 <>
                   <Divider sx={{ mb: 2 }} />
-                  <Typography variant="subtitle2" fontWeight={700} color="error" sx={{ mb: 1 }}>
+                  <Typography variant="subtitle2" color="error" sx={{ mb: 1 }}>
                     Revoke access
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
@@ -349,11 +349,11 @@ export default function AccessDrawer({ jwt, org, open, onClose, onArchived, focu
                   <Divider sx={{ my: 2 }} />
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                     <HistoryIcon fontSize="small" color="action" />
-                    <Typography variant="subtitle2" fontWeight={700}>
+                    <Typography variant="subtitle2">
                       History
                     </Typography>
                   </Stack>
-                  <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                  <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
